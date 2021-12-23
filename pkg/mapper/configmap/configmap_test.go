@@ -266,7 +266,7 @@ func TestParseMap(t *testing.T) {
 	}
 	accounts := []string{}
 
-	u, r, a, err := ParseMap(m1)
+	u, r, _, a, err := ParseMap(m1)
 	if err != nil {
 		t.Fatal(err)
 	}

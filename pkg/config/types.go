@@ -68,6 +68,21 @@ type UserMapping struct {
 	Groups []string `json:"groups"`
 }
 
+// ARNLikeMapping is a dynamic mapping of a matching AWS IAM ARNs to a
+// Kubernetes username and a list of Kubernetes groups
+type ARNLikeMapping struct {
+	// ARNLike is a string used to match AWS ARNs with globs. (e.g., "arn:aws:iam::000000000000:role/Kubernetes*")
+	ARNLike string `json:"arnLike"`
+
+	// Username is the username pattern that principals matching this
+	// string will have in Kubernetes.
+	Username string `json:"username"`
+
+	// Groups is a list of Kubernetes groups principals matching this string will
+	// authenticate as (e.g., `system:masters`)
+	Groups []string `json:"groups"`
+}
+
 // Config specifies the configuration for a aws-iam-authenticator server
 type Config struct {
 	// PartitionID is the AWS partition tokens are valid in. See
@@ -107,6 +122,10 @@ type Config struct {
 	// UserMappings is a list of mappings from AWS IAM User to
 	// Kubernetes username + groups.
 	UserMappings []UserMapping
+
+	// ARNLikeMappings is a list of mappings from AWS principals that match an
+	// ARNLike string to Kubernetes username + groups.
+	ARNLikeMappings []ARNLikeMapping
 
 	// AutoMappedAWSAccounts is a list of AWS accounts that are allowed without an explicit user/role mapping.
 	// IAM ARN from these accounts automatically maps to the Kubernetes username.

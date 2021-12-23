@@ -23,7 +23,7 @@ func TestAddUser(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	u, _, _, err := configmap.ParseMap(cm.Data)
+	u, _, _, _, err := configmap.ParseMap(cm.Data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ func TestAddRole(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, r, _, err := configmap.ParseMap(cm.Data)
+	_, r, _, _, err := configmap.ParseMap(cm.Data)
 	if err != nil {
 		t.Fatal(err)
 	}

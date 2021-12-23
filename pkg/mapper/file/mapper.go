@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/logandavies181/arnlike"
 	"sigs.k8s.io/aws-iam-authenticator/pkg/arn"
 	"sigs.k8s.io/aws-iam-authenticator/pkg/config"
 	"sigs.k8s.io/aws-iam-authenticator/pkg/mapper"
@@ -12,6 +13,7 @@ import (
 type FileMapper struct {
 	lowercaseRoleMap map[string]config.RoleMapping
 	lowercaseUserMap map[string]config.UserMapping
+	arnLikeList      []config.ARNLikeMapping
 	accountMap       map[string]bool
 }
 
@@ -37,6 +39,14 @@ func NewFileMapper(cfg config.Config) (*FileMapper, error) {
 			return nil, fmt.Errorf("error canonicalizing ARN: %v", err)
 		}
 		fileMapper.lowercaseUserMap[canonicalizedARN] = m
+	}
+	for _, m := range cfg.ARNLikeMappings {
+		// TODO: canonicalize or validate the ARNLike strings
+		if fileMapper.arnLikeList == nil {
+			fileMapper.arnLikeList = []config.ARNLikeMapping{m}
+		} else {
+			fileMapper.arnLikeList = append(fileMapper.arnLikeList, m)
+		}
 	}
 	for _, m := range cfg.AutoMappedAWSAccounts {
 		fileMapper.accountMap[m] = true
@@ -81,6 +91,22 @@ func (m *FileMapper) Map(canonicalARN string) (*config.IdentityMapping, error) {
 			Username:    userMapping.Username,
 			Groups:      userMapping.Groups,
 		}, nil
+	}
+
+	for _, arnLikeMapping := range m.arnLikeList {
+		//g := glob.MustCompile(arnLikeMapping.ARNLike)
+		matched, err := arnlike.ArnLike(canonicalARN, arnLikeMapping.ARNLike)
+		if err != nil {
+			return nil, err
+		}
+
+		if matched {
+			return &config.IdentityMapping{
+				IdentityARN: canonicalARN,
+				Username:    arnLikeMapping.Username,
+				Groups:      arnLikeMapping.Groups,
+			}, nil
+		}
 	}
 
 	return nil, mapper.ErrNotMapped

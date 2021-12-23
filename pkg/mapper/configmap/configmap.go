@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/logandavies181/arnlike"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	core_v1 "k8s.io/api/core/v1"
@@ -25,9 +26,10 @@ import (
 )
 
 type MapStore struct {
-	mutex sync.RWMutex
-	users map[string]config.UserMapping
-	roles map[string]config.RoleMapping
+	mutex           sync.RWMutex
+	users           map[string]config.UserMapping
+	roles           map[string]config.RoleMapping
+	arnLikeMappings []config.ARNLikeMapping
 	// Used as set.
 	awsAccounts map[string]interface{}
 	configMap   v1.ConfigMapInterface
@@ -78,8 +80,9 @@ func (ms *MapStore) startLoadConfigMap(stopCh <-chan struct{}) {
 						logrus.Info("Resetting configmap on delete")
 						userMappings := make([]config.UserMapping, 0)
 						roleMappings := make([]config.RoleMapping, 0)
+						arnLikeMappings := make([]config.ARNLikeMapping, 0)
 						awsAccounts := make([]string, 0)
-						ms.saveMap(userMappings, roleMappings, awsAccounts)
+						ms.saveMap(userMappings, roleMappings, arnLikeMappings, awsAccounts)
 					case watch.Added, watch.Modified:
 						switch cm := r.Object.(type) {
 						case *core_v1.ConfigMap:
@@ -87,11 +90,11 @@ func (ms *MapStore) startLoadConfigMap(stopCh <-chan struct{}) {
 								break
 							}
 							logrus.Info("Received aws-auth watch event")
-							userMappings, roleMappings, awsAccounts, err := ParseMap(cm.Data)
+							userMappings, roleMappings, arnLikeMappings, awsAccounts, err := ParseMap(cm.Data)
 							if err != nil {
 								logrus.Errorf("There was an error parsing the config maps.  Only saving data that was good, %+v", err)
 							}
-							ms.saveMap(userMappings, roleMappings, awsAccounts)
+							ms.saveMap(userMappings, roleMappings, arnLikeMappings, awsAccounts)
 							if err != nil {
 								logrus.Error(err)
 							}
@@ -113,7 +116,7 @@ func (err ErrParsingMap) Error() string {
 	return fmt.Sprintf("error parsing config map: %v", err.errors)
 }
 
-func ParseMap(m map[string]string) (userMappings []config.UserMapping, roleMappings []config.RoleMapping, awsAccounts []string, err error) {
+func ParseMap(m map[string]string) (userMappings []config.UserMapping, roleMappings []config.RoleMapping, arnLikeMappings []config.ARNLikeMapping, awsAccounts []string, err error) {
 	errs := make([]error, 0)
 	userMappings = make([]config.UserMapping, 0)
 	if userData, ok := m["mapUsers"]; ok {
@@ -141,6 +144,19 @@ func ParseMap(m map[string]string) (userMappings []config.UserMapping, roleMappi
 		}
 	}
 
+	arnLikeMappings = make([]config.ARNLikeMapping, 0)
+	if arnLikeData, ok := m["mapARNLikes"]; ok {
+		arnLikeJson, err := utilyaml.ToJSON([]byte(arnLikeData))
+		if err != nil {
+			errs = append(errs, err)
+		} else {
+			err = json.Unmarshal(arnLikeJson, &arnLikeMappings)
+			if err != nil {
+				errs = append(errs, err)
+			}
+		}
+	}
+
 	awsAccounts = make([]string, 0)
 	if accountsData, ok := m["mapAccounts"]; ok {
 		err := yaml.Unmarshal([]byte(accountsData), &awsAccounts)
@@ -153,7 +169,7 @@ func ParseMap(m map[string]string) (userMappings []config.UserMapping, roleMappi
 		logrus.Warnf("Errors parsing configmap: %+v", errs)
 		err = ErrParsingMap{errors: errs}
 	}
-	return userMappings, roleMappings, awsAccounts, err
+	return userMappings, roleMappings, arnLikeMappings, awsAccounts, err
 }
 
 func EncodeMap(userMappings []config.UserMapping, roleMappings []config.RoleMapping, awsAccounts []string) (m map[string]string, err error) {
@@ -186,11 +202,12 @@ func EncodeMap(userMappings []config.UserMapping, roleMappings []config.RoleMapp
 	return m, nil
 }
 
-func (ms *MapStore) saveMap(userMappings []config.UserMapping, roleMappings []config.RoleMapping, awsAccounts []string) {
+func (ms *MapStore) saveMap(userMappings []config.UserMapping, roleMappings []config.RoleMapping, arnLikeMappings []config.ARNLikeMapping, awsAccounts []string) {
 	ms.mutex.Lock()
 	defer ms.mutex.Unlock()
 	ms.users = make(map[string]config.UserMapping)
 	ms.roles = make(map[string]config.RoleMapping)
+	ms.arnLikeMappings = arnLikeMappings
 	ms.awsAccounts = make(map[string]interface{})
 
 	for _, user := range userMappings {
@@ -210,6 +227,9 @@ var UserNotFound = errors.New("User not found in configmap")
 // RoleNotFound is the error returned when the role is not found in the config map.
 var RoleNotFound = errors.New("Role not found in configmap")
 
+// ARNNotMatched is the error returned when the role is not found in the config map.
+var ARNNotMatched = errors.New("ARN not matched in configmap")
+
 func (ms *MapStore) UserMapping(arn string) (config.UserMapping, error) {
 	ms.mutex.RLock()
 	defer ms.mutex.RUnlock()
@@ -228,6 +248,24 @@ func (ms *MapStore) RoleMapping(arn string) (config.RoleMapping, error) {
 	} else {
 		return role, nil
 	}
+}
+
+func (ms *MapStore) ARNLikeMapping(arn string) (config.ARNLikeMapping, error) {
+	ms.mutex.RLock()
+	defer ms.mutex.RUnlock()
+
+	for _, arnLikeMapping := range ms.arnLikeMappings {
+		matched, err := arnlike.ArnLike(arn, arnLikeMapping.ARNLike)
+		if err != nil {
+			return config.ARNLikeMapping{}, err
+		}
+
+		if matched {
+			return arnLikeMapping, nil
+		}
+	}
+
+	return config.ARNLikeMapping{}, ARNNotMatched
 }
 
 func (ms *MapStore) AWSAccount(id string) bool {
