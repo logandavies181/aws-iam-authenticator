@@ -35,10 +35,9 @@ type IAMIdentityMapping struct {
 
 // IAMIdentityMappingSpec is the spec for a IAMIdentityMapping resource
 type IAMIdentityMappingSpec struct {
-	ARN         string   `json:"arn"`
-	Username    string   `json:"username"`
-	ARNPatterns string   `json:"arnPatterns"`
-	Groups      []string `json:"groups"`
+	ARN      string   `json:"arn"`
+	Username string   `json:"username"`
+	Groups   []string `json:"groups"`
 }
 
 // IAMIdentityMappingStatus is the status for a IAMIdentityMapping resource
