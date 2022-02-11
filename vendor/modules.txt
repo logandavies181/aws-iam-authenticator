@@ -71,15 +71,6 @@ github.com/go-openapi/jsonpointer
 github.com/go-openapi/jsonreference
 # github.com/go-openapi/swag v0.19.14
 github.com/go-openapi/swag
-# github.com/gobwas/glob v0.2.3
-github.com/gobwas/glob
-github.com/gobwas/glob/compiler
-github.com/gobwas/glob/match
-github.com/gobwas/glob/syntax
-github.com/gobwas/glob/syntax/ast
-github.com/gobwas/glob/syntax/lexer
-github.com/gobwas/glob/util/runes
-github.com/gobwas/glob/util/strings
 # github.com/gofrs/flock v0.7.0
 ## explicit
 github.com/gofrs/flock
@@ -131,7 +122,7 @@ github.com/json-iterator/go
 # github.com/juju/ansiterm v0.0.0-20180109212912-720a0952cc2a
 github.com/juju/ansiterm
 github.com/juju/ansiterm/tabwriter
-# github.com/logandavies181/arnlike v1.0.0
+# github.com/logandavies181/arnlike v1.1.0
 ## explicit
 github.com/logandavies181/arnlike
 # github.com/lunixbochs/vtclean v0.0.0-20180621232353-2d01aacdc34a
