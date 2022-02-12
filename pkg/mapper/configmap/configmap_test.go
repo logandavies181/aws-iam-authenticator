@@ -242,31 +242,34 @@ func TestLoadConfigMap(t *testing.T) {
 func TestParseMap(t *testing.T) {
 	m1 := map[string]string{
 		"mapRoles": `- rolearn: arn:aws:iam::123456789101:role/test-NodeInstanceRole-1VWRHZ3GKZ1T4
+  rolearnlike: ""
   username: system:node:{{EC2PrivateDNSName}}
   groups:
   - system:bootstrappers
   - system:nodes
 `,
 		"mapUsers": `- userarn: arn:aws:iam::123456789101:user/Hello
+  userarnlike: ""
   username: Hello
   groups:
   - system:masters
 - userarn: arn:aws:iam::123456789101:user/World
+  userarnlike: ""
   username: World
   groups:
   - system:masters
 `,
 	}
 	userMappings := []config.UserMapping{
-		{UserARN: "arn:aws:iam::123456789101:user/Hello", Username: "Hello", Groups: []string{"system:masters"}},
-		{UserARN: "arn:aws:iam::123456789101:user/World", Username: "World", Groups: []string{"system:masters"}},
+		{UserARN: "arn:aws:iam::123456789101:user/Hello", UserARNLike: "", Username: "Hello", Groups: []string{"system:masters"}},
+		{UserARN: "arn:aws:iam::123456789101:user/World", UserARNLike: "", Username: "World", Groups: []string{"system:masters"}},
 	}
 	roleMappings := []config.RoleMapping{
-		{RoleARN: "arn:aws:iam::123456789101:role/test-NodeInstanceRole-1VWRHZ3GKZ1T4", Username: "system:node:{{EC2PrivateDNSName}}", Groups: []string{"system:bootstrappers", "system:nodes"}},
+		{RoleARN: "arn:aws:iam::123456789101:role/test-NodeInstanceRole-1VWRHZ3GKZ1T4", RoleARNLike: "", Username: "system:node:{{EC2PrivateDNSName}}", Groups: []string{"system:bootstrappers", "system:nodes"}},
 	}
 	accounts := []string{}
 
-	u, r, _, a, err := ParseMap(m1)
+	u, ual, r, ral, a, err := ParseMap(m1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -281,7 +284,7 @@ func TestParseMap(t *testing.T) {
 		t.Fatalf("unexpected accounts %+v", a)
 	}
 
-	m2, err := EncodeMap(u, r, a)
+	m2, err := EncodeMap(append(u, ual...), append(r, ral...), a)
 	if err != nil {
 		t.Fatal(err)
 	}

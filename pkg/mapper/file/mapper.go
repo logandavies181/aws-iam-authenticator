@@ -30,19 +30,18 @@ func NewFileMapper(cfg config.Config) (*FileMapper, error) {
 	}
 
 	for _, m := range cfg.RoleMappings {
-		if m.RoleARN == "" && m.RoleARNLike == "" {
-			return nil, fmt.Errorf("One of roleARN or roleARNLike must be supplied")
-		}
-
-		if m.RoleARN != "" {
+		switch {
+		case m.RoleARN == "" && m.RoleARNLike == "":
+			return nil, fmt.Errorf("One of rolearn or rolearnLike must be supplied")
+		case m.RoleARN != "" && m.RoleARNLike != "":
+			return nil, fmt.Errorf("Only of rolearn or rolearnLike can be supplied")
+		case m.RoleARN != "":
 			canonicalizedARN, err := arn.Canonicalize(strings.ToLower(m.RoleARN))
 			if err != nil {
 				return nil, fmt.Errorf("error canonicalizing ARN: %v", err)
 			}
 			fileMapper.lowercaseRoleMap[canonicalizedARN] = m
-		}
-
-		if m.RoleARNLike != "" {
+		case m.RoleARNLike != "":
 			ok, err := arnlike.ArnLike(m.RoleARNLike, "arn:*:iam:*:*:role/*")
 			if err != nil {
 				return nil, err
@@ -50,22 +49,23 @@ func NewFileMapper(cfg config.Config) (*FileMapper, error) {
 				return nil, fmt.Errorf("RoleARNLike '%s' did not match an ARN for an IAM Role", m.RoleARNLike)
 			}
 			fileMapper.roleArnLikeMap[m.RoleARNLike] = m
+		default:
+			return nil, fmt.Errorf("Unexpected error parsing roleMapping: %v", m)
 		}
 	}
 	for _, m := range cfg.UserMappings {
-		if m.UserARN == "" && m.UserARNLike == "" {
-			return nil, fmt.Errorf("One of userARN or userARNLike must be supplied")
-		}
-
-		if m.UserARN != "" {
+		switch {
+		case m.UserARN == "" && m.UserARNLike == "":
+			return nil, fmt.Errorf("One of userarn or userarnLike must be supplied")
+		case m.UserARN != "" && m.UserARNLike != "":
+			return nil, fmt.Errorf("Only one of userarn or userarnLike can be supplied")
+		case m.UserARN != "":
 			canonicalizedARN, err := arn.Canonicalize(strings.ToLower(m.UserARN))
 			if err != nil {
 				return nil, fmt.Errorf("error canonicalizing ARN: %v", err)
 			}
 			fileMapper.lowercaseUserMap[canonicalizedARN] = m
-		}
-
-		if m.UserARNLike != "" {
+		case m.UserARNLike != "":
 			ok, err := arnlike.ArnLike(m.UserARNLike, "arn:*:iam:*:*:user/*")
 			if err != nil {
 				return nil, err
@@ -73,6 +73,8 @@ func NewFileMapper(cfg config.Config) (*FileMapper, error) {
 				return nil, fmt.Errorf("UserARNLike '%s' did not match an ARN for an IAM User", m.UserARNLike)
 			}
 			fileMapper.userArnLikeMap[m.UserARNLike] = m
+		default:
+			return nil, fmt.Errorf("Unexpected error parsing userMapping: %v", m)
 		}
 
 	}

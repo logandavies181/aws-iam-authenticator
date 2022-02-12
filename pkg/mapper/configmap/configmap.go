@@ -26,11 +26,11 @@ import (
 )
 
 type MapStore struct {
-	mutex           sync.RWMutex
-	users           map[string]config.UserMapping
-	userArnLikes    map[string]config.UserMapping
-	roles           map[string]config.RoleMapping
-	roleArnLikes    map[string]config.RoleMapping
+	mutex        sync.RWMutex
+	users        map[string]config.UserMapping
+	userArnLikes map[string]config.UserMapping
+	roles        map[string]config.RoleMapping
+	roleArnLikes map[string]config.RoleMapping
 	// Used as set.
 	awsAccounts map[string]interface{}
 	configMap   v1.ConfigMapInterface
@@ -134,16 +134,14 @@ func ParseMap(m map[string]string) (userMappings, userArnLikeMappings []config.U
 			}
 
 			for _, userMapping := range rawUserMappings {
-				if userMapping.UserARN == "" && userMapping.UserARNLike == "" {
-					errs = append(errs, fmt.Errorf("One of userARN or userARNLike must be supplied"))
-					continue
-				}
-
-				if userMapping.UserARN != "" {
+				switch {
+				case userMapping.UserARN == "" && userMapping.UserARNLike == "":
+					errs = append(errs, fmt.Errorf("One of userarn or userarnLike must be supplied"))
+				case userMapping.UserARN != "" && userMapping.UserARNLike != "":
+					errs = append(errs, fmt.Errorf("Only one of userarn or userarnLike can be supplied"))
+				case userMapping.UserARN != "":
 					userMappings = append(userMappings, userMapping)
-				}
-
-				if userMapping.UserARNLike != "" {
+				case userMapping.UserARNLike != "":
 					ok, err := arnlike.ArnLike(userMapping.UserARNLike, "arn:*:iam:*:*:user/*")
 					if err != nil {
 						errs = append(errs, err)
@@ -151,6 +149,8 @@ func ParseMap(m map[string]string) (userMappings, userArnLikeMappings []config.U
 						errs = append(errs, fmt.Errorf("UserARNLike '%s' did not match an ARN for an IAM User", userMapping.UserARNLike))
 					}
 					userArnLikeMappings = append(userArnLikeMappings, userMapping)
+				default:
+					errs = append(errs, fmt.Errorf("Unexpected error parsing userMapping: %v", userMapping))
 				}
 			}
 		}
@@ -170,16 +170,14 @@ func ParseMap(m map[string]string) (userMappings, userArnLikeMappings []config.U
 			}
 
 			for _, roleMapping := range rawRoleMappings {
-				if roleMapping.RoleARN == "" && roleMapping.RoleARNLike == "" {
-					errs = append(errs, fmt.Errorf("One of roleARN or roleARNLike must be supplied"))
-					continue
-				}
-
-				if roleMapping.RoleARN != "" {
+				switch {
+				case roleMapping.RoleARN == "" && roleMapping.RoleARNLike == "":
+					errs = append(errs, fmt.Errorf("One of rolearn or rolearnLike must be supplied"))
+				case roleMapping.RoleARN != "" && roleMapping.RoleARNLike != "":
+					errs = append(errs, fmt.Errorf("Only one of rolearn or rolearnLike can be supplied"))
+				case roleMapping.RoleARN != "":
 					roleMappings = append(roleMappings, roleMapping)
-				}
-
-				if roleMapping.RoleARNLike != "" {
+				case roleMapping.RoleARNLike != "":
 					ok, err := arnlike.ArnLike(roleMapping.RoleARNLike, "arn:*:iam:*:*:role/*")
 					if err != nil {
 						errs = append(errs, err)
@@ -187,6 +185,8 @@ func ParseMap(m map[string]string) (userMappings, userArnLikeMappings []config.U
 						errs = append(errs, fmt.Errorf("RoleARNLike '%s' did not match an ARN for an IAM Role", roleMapping.RoleARNLike))
 					}
 					roleArnLikeMappings = append(roleArnLikeMappings, roleMapping)
+				default:
+					errs = append(errs, fmt.Errorf("Unexpected error parsing roleMapping: %v", roleMapping))
 				}
 			}
 		}
@@ -334,7 +334,6 @@ func (ms *MapStore) RoleArnLikeMapping(arn string) (config.RoleMapping, error) {
 
 	return config.RoleMapping{}, RoleARNLikeNotMatched
 }
-
 
 func (ms *MapStore) AWSAccount(id string) bool {
 	ms.mutex.RLock()
