@@ -47,7 +47,7 @@ type RoleMapping struct {
 	RoleARN string `json:"rolearn"`
 
 	// RoleARNLike is a string used to match AWS IAM Role ARNs using the ARNLike comparison
-	RoleARNLike string `json:"rolearnLike"`
+	RoleARNLike string `json:"rolearnLike" yaml:"rolearnLike"`
 
 	// Username is the username pattern that this instances assuming this
 	// role will have in Kubernetes.
@@ -65,7 +65,7 @@ type UserMapping struct {
 	UserARN string `json:"userarn"`
 
 	// UserARNLike is a string used to match AWS IAM user ARNs using the ARNLike comparison
-	UserARNLike string `json:"userarnLike"`
+	UserARNLike string `json:"userarnLike" yaml:"userarnLike"`
 
 	// Username is the Kubernetes username this role will authenticate as (e.g., `mycorp:foo`)
 	Username string `json:"username"`

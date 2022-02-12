@@ -19,16 +19,22 @@ import (
 
 var testUser = config.UserMapping{Username: "matlan", Groups: []string{"system:master", "dev"}}
 var testRole = config.RoleMapping{Username: "computer", Groups: []string{"system:nodes"}}
+var testUserArnLike = config.UserMapping{UserARNLike: "arn:aws:iam::012345678912:user/log??", Username: "logan", Groups: []string{"system:master", "dev"}}
+var testRoleArnLike = config.RoleMapping{RoleARNLike: "arn:aws:iam::012345678912:role/comp*", Username: "computer", Groups: []string{"system:nodes"}}
 
 func makeStore() MapStore {
 	ms := MapStore{
-		users:       make(map[string]config.UserMapping),
-		roles:       make(map[string]config.RoleMapping),
-		awsAccounts: make(map[string]interface{}),
-		metrics:     metrics.CreateMetrics(prometheus.NewRegistry()),
+		users:        make(map[string]config.UserMapping),
+		roles:        make(map[string]config.RoleMapping),
+		userArnLikes: make(map[string]config.UserMapping),
+		roleArnLikes: make(map[string]config.RoleMapping),
+		awsAccounts:  make(map[string]interface{}),
+		metrics:      metrics.CreateMetrics(prometheus.NewRegistry()),
 	}
 	ms.users["matt"] = testUser
 	ms.roles["instance"] = testRole
+	ms.userArnLikes["arn:aws:iam::012345678912:user/logan"] = testUserArnLike
+	ms.roleArnLikes["arn:aws:iam::012345678912:role/computer"] = testRoleArnLike
 	ms.awsAccounts["123"] = nil
 	return ms
 }
@@ -81,6 +87,44 @@ func TestRoleMapping(t *testing.T) {
 	}
 	if !reflect.DeepEqual(role, config.RoleMapping{}) {
 		t.Errorf("Role value returend when role is not in map was not empty: %+v", role)
+	}
+}
+
+func TestUserArnLikeMapping(t *testing.T) {
+	ms := makeStore()
+	user, err := ms.UserArnLikeMapping("arn:aws:iam::012345678912:user/logan")
+	if err != nil {
+		t.Errorf("Could not find a match for user arn 'arn:aws:iam::012345678912:user/logan' in map")
+	}
+	if !reflect.DeepEqual(user, testUserArnLike) {
+		t.Errorf("User arn 'arn:aws:iam::012345678912:user/logan' does not match expected values. (Actual: %+v, Expected: %+v", user, testUserArnLike)
+	}
+
+	user, err = ms.UserArnLikeMapping("arn:aws:iam::012345678912:user/adaire")
+	if err != UserARNLikeNotMatched {
+		t.Errorf("UserARNLikeNotMatched error was not returned for user arn 'arn:aws:iam::012345678912:user/adaire'")
+	}
+	if !reflect.DeepEqual(user, config.UserMapping{}) {
+		t.Errorf("User value returned when user is not matched was not empty: %+v", user)
+	}
+}
+
+func TestRoleArnLikeMapping(t *testing.T) {
+	ms := makeStore()
+	role, err := ms.RoleArnLikeMapping("arn:aws:iam::012345678912:role/computer")
+	if err != nil {
+		t.Errorf("Could not find a match for role arn 'arn:aws:iam::012345678912:role/computer' in map")
+	}
+	if !reflect.DeepEqual(role, testRoleArnLike) {
+		t.Errorf("Role arn 'arn:aws:iam::012345678912:role/computer' does not match expected value. (Acutal: %+v, Expected: %+v", role, testRoleArnLike)
+	}
+
+	role, err = ms.RoleArnLikeMapping("arn:aws:iam::012345678912:role/monitor")
+	if err != RoleARNLikeNotMatched {
+		t.Errorf("RoleARNLikeNotMatched error was not returned for role arn 'arn:aws:iam::012345678912:role/monitor'")
+	}
+	if !reflect.DeepEqual(role, config.RoleMapping{}) {
+		t.Errorf("Role value returned when role is not matched was not empty: %+v", role)
 	}
 }
 
@@ -242,20 +286,31 @@ func TestLoadConfigMap(t *testing.T) {
 func TestParseMap(t *testing.T) {
 	m1 := map[string]string{
 		"mapRoles": `- rolearn: arn:aws:iam::123456789101:role/test-NodeInstanceRole-1VWRHZ3GKZ1T4
-  rolearnlike: ""
+  rolearnLike: ""
+  username: system:node:{{EC2PrivateDNSName}}
+  groups:
+  - system:bootstrappers
+  - system:nodes
+- rolearn: ""
+  rolearnLike: arn:aws:iam::123456789101:role/test-NodeInstanceRole-*
   username: system:node:{{EC2PrivateDNSName}}
   groups:
   - system:bootstrappers
   - system:nodes
 `,
 		"mapUsers": `- userarn: arn:aws:iam::123456789101:user/Hello
-  userarnlike: ""
+  userarnLike: ""
   username: Hello
   groups:
   - system:masters
 - userarn: arn:aws:iam::123456789101:user/World
-  userarnlike: ""
+  userarnLike: ""
   username: World
+  groups:
+  - system:masters
+- userarn: ""
+  userarnLike: arn:aws:iam::123456789101:user/Its??
+  username: ItsMe
   groups:
   - system:masters
 `,
@@ -264,8 +319,14 @@ func TestParseMap(t *testing.T) {
 		{UserARN: "arn:aws:iam::123456789101:user/Hello", UserARNLike: "", Username: "Hello", Groups: []string{"system:masters"}},
 		{UserARN: "arn:aws:iam::123456789101:user/World", UserARNLike: "", Username: "World", Groups: []string{"system:masters"}},
 	}
+	userArnLikeMappings := []config.UserMapping{
+		{UserARN: "", UserARNLike: "arn:aws:iam::123456789101:user/Its??", Username: "ItsMe", Groups: []string{"system:masters"}},
+	}
 	roleMappings := []config.RoleMapping{
 		{RoleARN: "arn:aws:iam::123456789101:role/test-NodeInstanceRole-1VWRHZ3GKZ1T4", RoleARNLike: "", Username: "system:node:{{EC2PrivateDNSName}}", Groups: []string{"system:bootstrappers", "system:nodes"}},
+	}
+	roleArnLikeMappings := []config.RoleMapping{
+		{RoleARN: "", RoleARNLike: "arn:aws:iam::123456789101:role/test-NodeInstanceRole-*", Username: "system:node:{{EC2PrivateDNSName}}", Groups: []string{"system:bootstrappers", "system:nodes"}},
 	}
 	accounts := []string{}
 
@@ -277,8 +338,14 @@ func TestParseMap(t *testing.T) {
 	if !reflect.DeepEqual(u, userMappings) {
 		t.Fatalf("unexpected userMappings %+v", u)
 	}
+	if !reflect.DeepEqual(ual, userArnLikeMappings) {
+		t.Fatalf("unexpected userArnLikeMappings %+v", ual)
+	}
 	if !reflect.DeepEqual(r, roleMappings) {
 		t.Fatalf("unexpected roleMappings %+v", r)
+	}
+	if !reflect.DeepEqual(ral, roleArnLikeMappings) {
+		t.Fatalf("unexpected roleArnLikeMappings %+v", ral)
 	}
 	if !reflect.DeepEqual(a, accounts) {
 		t.Fatalf("unexpected accounts %+v", a)
