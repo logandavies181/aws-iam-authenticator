@@ -53,12 +53,21 @@ func (m *ConfigMapMapper) Map(canonicalARN string) (*config.IdentityMapping, err
 		}, nil
 	}
 
-	alm, err := m.ARNLikeMapping(canonicalARN)
+	ralm, err := m.RoleArnLikeMapping(canonicalARN)
 	if err == nil {
 		return &config.IdentityMapping{
 			IdentityARN: canonicalARN,
-			Username:    alm.Username,
-			Groups:      alm.Groups,
+			Username:    ralm.Username,
+			Groups:      ralm.Groups,
+		}, nil
+	}
+
+	ualm, err := m.UserArnLikeMapping(canonicalARN)
+	if err == nil {
+		return &config.IdentityMapping{
+			IdentityARN: canonicalARN,
+			Username:    ualm.Username,
+			Groups:      ualm.Groups,
 		}, nil
 	}
 

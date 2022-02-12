@@ -47,24 +47,17 @@ func (cli *client) AddRole(role *config.RoleMapping) (*core_v1.ConfigMap, error)
 	if role == nil {
 		return nil, errors.New("empty role")
 	}
-	return cli.add(role, nil, nil)
+	return cli.add(role, nil)
 }
 
 func (cli *client) AddUser(user *config.UserMapping) (*core_v1.ConfigMap, error) {
 	if user == nil {
 		return nil, errors.New("empty user")
 	}
-	return cli.add(nil, user, nil)
+	return cli.add(nil, user)
 }
 
-func (cli *client) AddARNLikeMapping(arnLikeMapping *config.ARNLikeMapping) (*core_v1.ConfigMap, error) {
-	if arnLikeMapping == nil {
-		return nil, errors.New("empty arnLikeMapping")
-	}
-	return cli.add(nil, nil, arnLikeMapping)
-}
-
-func (cli *client) add(role *config.RoleMapping, user *config.UserMapping, arnLikeMapping *config.ARNLikeMapping) (cm *core_v1.ConfigMap, err error) {
+func (cli *client) add(role *config.RoleMapping, user *config.UserMapping) (cm *core_v1.ConfigMap, err error) {
 	if role == nil && user == nil {
 		return nil, errors.New("empty role/user")
 	}
@@ -79,7 +72,8 @@ func (cli *client) add(role *config.RoleMapping, user *config.UserMapping, arnLi
 
 		data := cm.Data
 
-		userMappings, roleMappings, arnLikeMappings, awsAccounts, err := configmap.ParseMap(data)
+		//userMappings, userArnLikeMappings, roleMappings, roleArnLikeMappings, awsAccounts, err := configmap.ParseMap(data)
+		userMappings, _, roleMappings, _, awsAccounts, err := configmap.ParseMap(data)
 		if err != nil {
 			return fmt.Errorf("failed to parse configmap %v", err)
 		}
@@ -100,16 +94,6 @@ func (cli *client) add(role *config.RoleMapping, user *config.UserMapping, arnLi
 				}
 			}
 			userMappings = append(userMappings, *user)
-		}
-
-		if arnLikeMapping != nil {
-			for _, a := range arnLikeMappings {
-				if a.ARNLike == arnLikeMapping.ARNLike {
-					return fmt.Errorf("cannot add duplicate ARN mapping pattern %q", arnLikeMapping.ARNLike)
-				}
-			}
-			roleMappings = append(roleMappings, *role)
-
 		}
 
 		data, err = configmap.EncodeMap(userMappings, roleMappings, awsAccounts)

@@ -12,8 +12,9 @@ import (
 
 type FileMapper struct {
 	lowercaseRoleMap map[string]config.RoleMapping
+	roleArnLikeMap   map[string]config.RoleMapping
 	lowercaseUserMap map[string]config.UserMapping
-	arnLikeList      []config.ARNLikeMapping
+	userArnLikeMap   map[string]config.UserMapping
 	accountMap       map[string]bool
 }
 
@@ -22,31 +23,58 @@ var _ mapper.Mapper = &FileMapper{}
 func NewFileMapper(cfg config.Config) (*FileMapper, error) {
 	fileMapper := &FileMapper{
 		lowercaseRoleMap: make(map[string]config.RoleMapping),
+		roleArnLikeMap:   make(map[string]config.RoleMapping),
 		lowercaseUserMap: make(map[string]config.UserMapping),
+		userArnLikeMap:   make(map[string]config.UserMapping),
 		accountMap:       make(map[string]bool),
 	}
 
 	for _, m := range cfg.RoleMappings {
-		canonicalizedARN, err := arn.Canonicalize(strings.ToLower(m.RoleARN))
-		if err != nil {
-			return nil, fmt.Errorf("error canonicalizing ARN: %v", err)
+		if m.RoleARN == "" && m.RoleARNLike == "" {
+			return nil, fmt.Errorf("One of roleARN or roleARNLike must be supplied")
 		}
-		fileMapper.lowercaseRoleMap[canonicalizedARN] = m
+
+		if m.RoleARN != "" {
+			canonicalizedARN, err := arn.Canonicalize(strings.ToLower(m.RoleARN))
+			if err != nil {
+				return nil, fmt.Errorf("error canonicalizing ARN: %v", err)
+			}
+			fileMapper.lowercaseRoleMap[canonicalizedARN] = m
+		}
+
+		if m.RoleARNLike != "" {
+			ok, err := arnlike.ArnLike(m.RoleARNLike, "arn:*:iam:*:*:role/*")
+			if err != nil {
+				return nil, err
+			} else if !ok {
+				return nil, fmt.Errorf("RoleARNLike '%s' did not match an ARN for an IAM Role", m.RoleARNLike)
+			}
+			fileMapper.roleArnLikeMap[m.RoleARNLike] = m
+		}
 	}
 	for _, m := range cfg.UserMappings {
-		canonicalizedARN, err := arn.Canonicalize(strings.ToLower(m.UserARN))
-		if err != nil {
-			return nil, fmt.Errorf("error canonicalizing ARN: %v", err)
+		if m.UserARN == "" && m.UserARNLike == "" {
+			return nil, fmt.Errorf("One of userARN or userARNLike must be supplied")
 		}
-		fileMapper.lowercaseUserMap[canonicalizedARN] = m
-	}
-	for _, m := range cfg.ARNLikeMappings {
-		// TODO: canonicalize or validate the ARNLike strings
-		if fileMapper.arnLikeList == nil {
-			fileMapper.arnLikeList = []config.ARNLikeMapping{m}
-		} else {
-			fileMapper.arnLikeList = append(fileMapper.arnLikeList, m)
+
+		if m.UserARN != "" {
+			canonicalizedARN, err := arn.Canonicalize(strings.ToLower(m.UserARN))
+			if err != nil {
+				return nil, fmt.Errorf("error canonicalizing ARN: %v", err)
+			}
+			fileMapper.lowercaseUserMap[canonicalizedARN] = m
 		}
+
+		if m.UserARNLike != "" {
+			ok, err := arnlike.ArnLike(m.UserARNLike, "arn:*:iam:*:*:user/*")
+			if err != nil {
+				return nil, err
+			} else if !ok {
+				return nil, fmt.Errorf("UserARNLike '%s' did not match an ARN for an IAM User", m.UserARNLike)
+			}
+			fileMapper.userArnLikeMap[m.UserARNLike] = m
+		}
+
 	}
 	for _, m := range cfg.AutoMappedAWSAccounts {
 		fileMapper.accountMap[m] = true
@@ -93,9 +121,8 @@ func (m *FileMapper) Map(canonicalARN string) (*config.IdentityMapping, error) {
 		}, nil
 	}
 
-	for _, arnLikeMapping := range m.arnLikeList {
-		//g := glob.MustCompile(arnLikeMapping.ARNLike)
-		matched, err := arnlike.ArnLike(canonicalARN, arnLikeMapping.ARNLike)
+	for _, roleArnLikeMapping := range m.roleArnLikeMap {
+		matched, err := arnlike.ArnLike(canonicalARN, roleArnLikeMapping.RoleARNLike)
 		if err != nil {
 			return nil, err
 		}
@@ -103,8 +130,23 @@ func (m *FileMapper) Map(canonicalARN string) (*config.IdentityMapping, error) {
 		if matched {
 			return &config.IdentityMapping{
 				IdentityARN: canonicalARN,
-				Username:    arnLikeMapping.Username,
-				Groups:      arnLikeMapping.Groups,
+				Username:    roleArnLikeMapping.Username,
+				Groups:      roleArnLikeMapping.Groups,
+			}, nil
+		}
+	}
+
+	for _, userArnLikeMapping := range m.userArnLikeMap {
+		matched, err := arnlike.ArnLike(canonicalARN, userArnLikeMapping.UserARNLike)
+		if err != nil {
+			return nil, err
+		}
+
+		if matched {
+			return &config.IdentityMapping{
+				IdentityARN: canonicalARN,
+				Username:    userArnLikeMapping.Username,
+				Groups:      userArnLikeMapping.Groups,
 			}, nil
 		}
 	}
