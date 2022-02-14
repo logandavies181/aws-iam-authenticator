@@ -41,16 +41,28 @@ var addUserCmd = &cobra.Command{
 	Short: "add a user entity to an existing aws-auth configmap, not for CRD/file backends",
 	Long:  "NOTE: this does not currently support the CRD and file backends",
 	Run: func(cmd *cobra.Command, args []string) {
-		if userARN == "" || userName == "" || len(groups) == 0 {
+		if (userARN == "" && userARNLike == "")|| userName == "" || len(groups) == 0 {
 			fmt.Printf("invalid empty value in userARN %q, username %q, groups %q", userARN, userName, groups)
 			os.Exit(1)
 		}
 
-		checkPrompt(fmt.Sprintf("add userarn %s, username %s, groups %s", userARN, userName, groups))
+		var arnOrArnLike string
+		switch {
+		case userARN != "" && userARNLike != "":
+			fmt.Printf("only one of --userarn or --userarnlike can be supplied")
+			os.Exit(1)
+		case userARN != "":
+			arnOrArnLike = "userarn"
+		case userARNLike != "":
+			arnOrArnLike = "userarnlike"
+		}
+
+		checkPrompt(fmt.Sprintf("add %s %s, username %s, groups %s", arnOrArnLike, userARN, userName, groups))
 		cli := createClient()
 
 		cm, err := cli.AddUser(&config.UserMapping{
 			UserARN:  userARN,
+			UserARNLike: userARNLike,
 			Username: userName,
 			Groups:   groups,
 		})
@@ -73,16 +85,28 @@ var addRoleCmd = &cobra.Command{
 	Short: "add a role entity to an existing aws-auth configmap, not for CRD/file backends",
 	Long:  "NOTE: this does not currently support the CRD and file backends",
 	Run: func(cmd *cobra.Command, args []string) {
-		if roleARN == "" || userName == "" || len(groups) == 0 {
+		if (roleARN == "" && roleARNLike == "") || userName == "" || len(groups) == 0 {
 			fmt.Printf("invalid empty value in rolearn %q, username %q, groups %q", roleARN, userName, groups)
 			os.Exit(1)
 		}
 
-		checkPrompt(fmt.Sprintf("add rolearn %s, username %s, groups %s", roleARN, userName, groups))
+		var arnOrArnLike string
+		switch {
+		case roleARN != "" && roleARNLike != "":
+			fmt.Printf("only one of --rolearn or --rolearnlike can be supplied")
+			os.Exit(1)
+		case roleARN != "":
+			arnOrArnLike = "userarn"
+		case roleARNLike != "":
+			arnOrArnLike = "userarnlike"
+		}
+
+		checkPrompt(fmt.Sprintf("add %s %s, username %s, groups %s", arnOrArnLike, roleARN, userName, groups))
 		cli := createClient()
 
 		cm, err := cli.AddRole(&config.RoleMapping{
 			RoleARN:  roleARN,
+			RoleARNLike:  roleARNLike,
 			Username: userName,
 			Groups:   groups,
 		})
@@ -171,9 +195,11 @@ var (
 	kubeconfigContext string
 
 	userARN  string
+	userARNLike  string
 	userName string
 	groups   []string
 	roleARN  string
+	roleARNLike  string
 )
 
 func init() {
@@ -187,10 +213,12 @@ func init() {
 	addCmd.PersistentFlags().StringVar(&kubeconfigContext, "kubeconfig-context", "", "kubeconfig context, if empty, it uses the default context")
 
 	addUserCmd.PersistentFlags().StringVar(&userARN, "userarn", "", "A new user ARN")
+	addUserCmd.PersistentFlags().StringVar(&userARNLike, "userarnlike", "", "A new arnlike pattern to match user ARNs")
 	addUserCmd.PersistentFlags().StringVar(&userName, "username", "", "A new user name")
 	addUserCmd.PersistentFlags().StringSliceVar(&groups, "groups", nil, "A new user groups")
 
 	addRoleCmd.PersistentFlags().StringVar(&roleARN, "rolearn", "", "A new role ARN")
+	addRoleCmd.PersistentFlags().StringVar(&roleARNLike, "rolearnlike", "", "A new arnlike pattern to match role ARNs")
 	addRoleCmd.PersistentFlags().StringVar(&userName, "username", "", "A new user name")
 	addRoleCmd.PersistentFlags().StringSliceVar(&groups, "groups", nil, "A new role groups")
 }

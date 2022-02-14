@@ -73,30 +73,53 @@ func (cli *client) add(role *config.RoleMapping, user *config.UserMapping) (cm *
 		data := cm.Data
 
 		//userMappings, userArnLikeMappings, roleMappings, roleArnLikeMappings, awsAccounts, err := configmap.ParseMap(data)
-		userMappings, _, roleMappings, _, awsAccounts, err := configmap.ParseMap(data)
+		userMappings, userArnLikeMappings, roleMappings, roleArnLikeMappings, awsAccounts, err := configmap.ParseMap(data)
 		if err != nil {
 			return fmt.Errorf("failed to parse configmap %v", err)
 		}
 
 		if role != nil {
-			for _, r := range roleMappings {
-				if r.RoleARN == role.RoleARN {
-					return fmt.Errorf("cannot add duplicate role ARN %q", role.RoleARN)
+			if role.RoleARN != "" {
+				for _, r := range roleMappings {
+					if r.RoleARN == role.RoleARN {
+						return fmt.Errorf("cannot add duplicate role ARN %q", role.RoleARN)
+					}
 				}
+				roleMappings = append(roleMappings, *role)
 			}
-			roleMappings = append(roleMappings, *role)
+			if role.RoleARNLike != "" {
+				for _, r := range roleArnLikeMappings {
+					fmt.Println(r.RoleARNLike)
+					fmt.Println(role.RoleARNLike)
+					if r.RoleARNLike == role.RoleARNLike {
+						return fmt.Errorf("cannot add duplicate role ARNLike pattern %q", role.RoleARNLike)
+					}
+				}
+				roleArnLikeMappings = append(roleArnLikeMappings, *role)
+
+			}
 		}
 
 		if user != nil {
-			for _, r := range userMappings {
-				if r.UserARN == user.UserARN {
-					return fmt.Errorf("cannot add duplicate user ARN %q", user.UserARN)
+			if user.UserARN != "" {
+				for _, r := range userMappings {
+					if r.UserARN != "" && r.UserARN == user.UserARN {
+						return fmt.Errorf("cannot add duplicate user ARN %q", user.UserARN)
+					}
 				}
+				userMappings = append(userMappings, *user)
 			}
-			userMappings = append(userMappings, *user)
+			if user.UserARNLike != "" {
+				for _, u := range userArnLikeMappings {
+					if u.UserARNLike == user.UserARNLike {
+						return fmt.Errorf("cannot add duplicate user ARNLike pattern %q", user.UserARN)
+					}
+				}
+				userArnLikeMappings = append(userArnLikeMappings, *user)
+			}
 		}
 
-		data, err = configmap.EncodeMap(userMappings, roleMappings, awsAccounts)
+		data, err = configmap.EncodeMap(append(userMappings, userArnLikeMappings...), append(roleMappings, roleArnLikeMappings...), awsAccounts)
 		if err != nil {
 			return err
 		}
