@@ -41,7 +41,7 @@ func TestNewFileMapper(t *testing.T) {
 	cfg := newConfig()
 
 	expected := &FileMapper{
-		lowercaseRoleMap: map[string]config.RoleMapping{
+		roleMap: map[string]config.RoleMapping{
 			"arn:aws:iam::0123456789012:role/test-role": {
 				RoleARN:  "arn:aws:iam::0123456789012:role/test-role",
 				Username: "roland",
@@ -53,7 +53,7 @@ func TestNewFileMapper(t *testing.T) {
 				Groups:      []string{"system:masters"},
 			},
 		},
-		lowercaseUserMap: map[string]config.UserMapping{
+		userMap: map[string]config.UserMapping{
 			"arn:aws:iam::0123456789012:user/donald": {
 				UserARN:  "arn:aws:iam::0123456789012:user/donald",
 				Username: "donald",

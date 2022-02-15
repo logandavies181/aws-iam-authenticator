@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -216,22 +215,10 @@ func (ms *MapStore) saveMap(
 	ms.awsAccounts = make(map[string]interface{})
 
 	for _, user := range userMappings {
-		var key string
-		if user.UserARN != "" {
-			key = strings.ToLower(user.UserARN)
-		} else {
-			key = user.UserARNLike
-		}
-		ms.users[key] = user
+		ms.users[user.Key()] = user
 	}
 	for _, role := range roleMappings {
-		var key string
-		if role.RoleARN != "" {
-			key = strings.ToLower(role.RoleARN)
-		} else {
-			key = role.RoleARNLike
-		}
-		ms.roles[key] = role
+		ms.roles[role.Key()] = role
 	}
 	for _, awsAccount := range awsAccounts {
 		ms.awsAccounts[awsAccount] = nil
