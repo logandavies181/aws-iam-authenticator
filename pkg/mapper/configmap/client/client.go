@@ -92,13 +92,13 @@ func (cli *client) add(role *config.RoleMapping, user *config.UserMapping) (cm *
 		}
 
 		if user != nil {
-			err = role.Validate()
+			err = user.Validate()
 			if err != nil {
 				return fmt.Errorf("user is invalid: %v", err)
 			}
 			for _, r := range userMappings {
-				if r.UserARN != "" && r.UserARN == user.UserARN {
-					return fmt.Errorf("cannot add duplicate user ARN %q", user.UserARN)
+				if r.Key() == user.Key() {
+					return fmt.Errorf("cannot add duplicate user ARN %q", user.Key())
 				}
 			}
 			userMappings = append(userMappings, *user)

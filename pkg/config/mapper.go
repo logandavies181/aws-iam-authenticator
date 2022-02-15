@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/logandavies181/arnlike"
 )
@@ -34,7 +35,7 @@ func (m *RoleMapping) Validate() error {
 // this RoleMapping
 func (m *RoleMapping) Matches(subject string) bool {
 	if m.RoleARN != "" {
-		return m.RoleARN == subject
+		return strings.ToLower(m.RoleARN) == strings.ToLower(subject)
 	}
 
 	// Assume the caller has called Validate(), which parses m.RoleARNLike
@@ -56,7 +57,7 @@ func (m *RoleMapping) Key() string {
 // Validate returns an error if the UserMapping is not valid after being unmarshaled
 func (m *UserMapping) Validate() error {
 	if m == nil {
-		return fmt.Errorf("RoleMapping is nil")
+		return fmt.Errorf("UserMapping is nil")
 	}
 
 	if m.UserARN == "" && m.UserARNLike == "" {
@@ -70,7 +71,7 @@ func (m *UserMapping) Validate() error {
 		if err != nil {
 			return err
 		} else if !ok {
-			return fmt.Errorf("RoleARNLike '%s' did not match an ARN for an IAM User", m.UserARNLike)
+			return fmt.Errorf("UserARNLike '%s' did not match an ARN for an IAM User", m.UserARNLike)
 		}
 	}
 
@@ -81,7 +82,7 @@ func (m *UserMapping) Validate() error {
 // this UserMapping
 func (m *UserMapping) Matches(subject string) bool {
 	if m.UserARN != "" {
-		return m.UserARN == subject
+		return strings.ToLower(m.UserARN) == strings.ToLower(subject)
 	}
 
 	// As per RoleMapping.Matches, we can ignore the error here

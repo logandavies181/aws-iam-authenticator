@@ -47,8 +47,6 @@ func TestNewFileMapper(t *testing.T) {
 				Username: "roland",
 				Groups:   []string{"system:masters"},
 			},
-		},
-		roleArnLikeMap: map[string]config.RoleMapping{
 			"arn:aws:iam::0123456789012:role/cookie-cutt*": {
 				RoleARNLike: "arn:aws:iam::0123456789012:role/cookie-cutt*",
 				Username:    "cookie-cutter",
@@ -61,8 +59,6 @@ func TestNewFileMapper(t *testing.T) {
 				Username: "donald",
 				Groups:   []string{"system:masters"},
 			},
-		},
-		userArnLikeMap: map[string]config.UserMapping{
 			"arn:aws:iam::0123456789012:user/shrey*": {
 				UserARNLike: "arn:aws:iam::0123456789012:user/shrey*",
 				Username:    "shreyas",

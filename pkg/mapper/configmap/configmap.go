@@ -216,10 +216,22 @@ func (ms *MapStore) saveMap(
 	ms.awsAccounts = make(map[string]interface{})
 
 	for _, user := range userMappings {
-		ms.users[strings.ToLower(user.UserARN)] = user
+		var key string
+		if user.UserARN != "" {
+			key = strings.ToLower(user.UserARN)
+		} else {
+			key = user.UserARNLike
+		}
+		ms.users[key] = user
 	}
 	for _, role := range roleMappings {
-		ms.roles[strings.ToLower(role.RoleARN)] = role
+		var key string
+		if role.RoleARN != "" {
+			key = strings.ToLower(role.RoleARN)
+		} else {
+			key = role.RoleARNLike
+		}
+		ms.roles[key] = role
 	}
 	for _, awsAccount := range awsAccounts {
 		ms.awsAccounts[awsAccount] = nil
@@ -240,7 +252,7 @@ func (ms *MapStore) UserMapping(arn string) (config.UserMapping, error) {
 			return user, nil
 		}
 	}
-	return config.UserMapping{}, nil
+	return config.UserMapping{}, UserNotFound
 }
 
 func (ms *MapStore) RoleMapping(arn string) (config.RoleMapping, error) {

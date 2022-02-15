@@ -23,7 +23,7 @@ func TestAddUser(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	u, _, _, _, _, err := configmap.ParseMap(cm.Data)
+	u, _, _, err := configmap.ParseMap(cm.Data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +41,7 @@ func TestAddUser(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, ual, _, _, _, err := configmap.ParseMap(cm.Data)
+	ual, _, _, err := configmap.ParseMap(cm.Data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func TestAddUser(t *testing.T) {
 		nil,
 		nil,
 	)
-	if _, err := cli.AddUser(&newUserArnLike); err == nil || !strings.Contains(err.Error(), `cannot add duplicate user ARNLike pattern`) {
+	if _, err := cli.AddUser(&newUserArnLike); err == nil || !strings.Contains(err.Error(), `cannot add duplicate user ARN`) {
 		t.Fatal(err)
 	}
 }
@@ -73,7 +73,7 @@ func TestAddRole(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, _, r, _, _, err := configmap.ParseMap(cm.Data)
+	_, r, _, err := configmap.ParseMap(cm.Data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +96,7 @@ func TestAddRole(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, _, _, ral, _, err := configmap.ParseMap(cm.Data)
+	_, ral, _, err := configmap.ParseMap(cm.Data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +110,7 @@ func TestAddRole(t *testing.T) {
 		[]config.RoleMapping{newRoleArnLike},
 		nil,
 	)
-	if _, err := cli.AddRole(&newRoleArnLike); err == nil || !strings.Contains(err.Error(), `cannot add duplicate role ARNLike pattern`) {
+	if _, err := cli.AddRole(&newRoleArnLike); err == nil || !strings.Contains(err.Error(), `cannot add duplicate role ARN`) {
 		t.Fatal(err)
 	}
 }

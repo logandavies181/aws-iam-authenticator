@@ -29,22 +29,34 @@ func NewFileMapper(cfg config.Config) (*FileMapper, error) {
 		if err != nil {
 			return nil, err
 		}
-		canonicalizedARN, err := arn.Canonicalize(strings.ToLower(m.Key()))
-		if err != nil {
-			return nil, fmt.Errorf("error canonicalizing ARN: %v", err)
+		var key string
+		if m.RoleARN != "" {
+			canonicalizedARN, err := arn.Canonicalize(strings.ToLower(m.RoleARN))
+			if err != nil {
+				return nil, fmt.Errorf("error canonicalizing ARN: %v", err)
+			}
+			key = canonicalizedARN
+		} else {
+			key = m.Key()
 		}
-		fileMapper.lowercaseRoleMap[canonicalizedARN] = m
+		fileMapper.lowercaseRoleMap[key] = m
 	}
 	for _, m := range cfg.UserMappings {
 		err := m.Validate()
 		if err != nil {
 			return nil, err
 		}
-		canonicalizedARN, err := arn.Canonicalize(strings.ToLower(m.Key()))
-		if err != nil {
-			return nil, fmt.Errorf("error canonicalizing ARN: %v", err)
+		var key string
+		if m.UserARN != "" {
+			canonicalizedARN, err := arn.Canonicalize(strings.ToLower(m.Key()))
+			if err != nil {
+				return nil, fmt.Errorf("error canonicalizing ARN: %v", err)
+			}
+			key = canonicalizedARN
+		} else {
+			key = m.Key()
 		}
-		fileMapper.lowercaseUserMap[canonicalizedARN] = m
+		fileMapper.lowercaseUserMap[key] = m
 	}
 	for _, m := range cfg.AutoMappedAWSAccounts {
 		fileMapper.accountMap[m] = true
