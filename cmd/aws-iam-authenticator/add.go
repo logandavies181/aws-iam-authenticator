@@ -41,7 +41,7 @@ var addUserCmd = &cobra.Command{
 	Short: "add a user entity to an existing aws-auth configmap, not for CRD/file backends",
 	Long:  "NOTE: this does not currently support the CRD and file backends",
 	Run: func(cmd *cobra.Command, args []string) {
-		if (userARN == "" && userARNLike == "")|| userName == "" || len(groups) == 0 {
+		if (userARN == "" && userARNLike == "") || userName == "" || len(groups) == 0 {
 			fmt.Printf("invalid empty value in userARN %q, username %q, groups %q", userARN, userName, groups)
 			os.Exit(1)
 		}
@@ -61,10 +61,10 @@ var addUserCmd = &cobra.Command{
 		cli := createClient()
 
 		cm, err := cli.AddUser(&config.UserMapping{
-			UserARN:  userARN,
+			UserARN:     userARN,
 			UserARNLike: userARNLike,
-			Username: userName,
-			Groups:   groups,
+			Username:    userName,
+			Groups:      groups,
 		})
 		if err != nil {
 			fmt.Println(err)
@@ -105,10 +105,10 @@ var addRoleCmd = &cobra.Command{
 		cli := createClient()
 
 		cm, err := cli.AddRole(&config.RoleMapping{
-			RoleARN:  roleARN,
-			RoleARNLike:  roleARNLike,
-			Username: userName,
-			Groups:   groups,
+			RoleARN:     roleARN,
+			RoleARNLike: roleARNLike,
+			Username:    userName,
+			Groups:      groups,
 		})
 		if err != nil {
 			fmt.Println(err)
@@ -194,12 +194,12 @@ var (
 	kubeconfigPath    string
 	kubeconfigContext string
 
-	userARN  string
-	userARNLike  string
-	userName string
-	groups   []string
-	roleARN  string
-	roleARNLike  string
+	userARN     string
+	userARNLike string
+	userName    string
+	groups      []string
+	roleARN     string
+	roleARNLike string
 )
 
 func init() {
