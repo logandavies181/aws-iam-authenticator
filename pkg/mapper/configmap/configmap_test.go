@@ -15,6 +15,10 @@ import (
 	"sigs.k8s.io/aws-iam-authenticator/pkg/config"
 )
 
+func init() {
+	config.ARNLikeMatchEnabled = true
+}
+
 var testUser = config.UserMapping{UserARN: "arn:aws:iam::012345678912:user/matt", Username: "matlan", Groups: []string{"system:master", "dev"}}
 var testRole = config.RoleMapping{RoleARN: "arn:aws:iam::012345678912:role/computer", Username: "computer", Groups: []string{"system:nodes"}}
 var testUserArnLike = config.UserMapping{UserARNLike: "arn:aws:iam::012345678912:user/log??", Username: "logan", Groups: []string{"system:master", "dev"}}

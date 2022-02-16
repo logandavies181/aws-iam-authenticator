@@ -7,6 +7,10 @@ import (
 	"sigs.k8s.io/aws-iam-authenticator/pkg/config"
 )
 
+func init() {
+	config.ARNLikeMatchEnabled = true
+}
+
 func newConfig() config.Config {
 	return config.Config{
 		RoleMappings: []config.RoleMapping{
