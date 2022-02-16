@@ -23,8 +23,13 @@ import (
 const (
 	// IAMIdentityMappingCRD enables using CRDs to manage allowed users
 	IAMIdentityMappingCRD featuregate.Feature = "IAMIdentityMappingCRD"
+	// ARNLikeMatch enables using ARNLike string patterns to match allowed users and roles
+	ARNLikeMatch featuregate.Feature = "ARNLikeMatch"
 )
+
+var ARNLikeMatchEnabled bool
 
 var DefaultFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	IAMIdentityMappingCRD: {Default: false, PreRelease: featuregate.Alpha},
+	ARNLikeMatch:          {Default: false, PreRelease: featuregate.Alpha},
 }

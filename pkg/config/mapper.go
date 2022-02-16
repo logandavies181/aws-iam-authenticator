@@ -41,7 +41,10 @@ func (m *RoleMapping) Matches(subject string) bool {
 	// Assume the caller has called Validate(), which parses m.RoleARNLike
 	// If subject is not parsable, then it cannot be a valid ARN anyway so
 	// we can ignore the error here
-	ok, _ := arnlike.ArnLike(subject, m.RoleARNLike)
+	var ok bool
+	if ARNLikeMatchEnabled {
+		ok, _ = arnlike.ArnLike(subject, m.RoleARNLike)
+	}
 	return ok
 }
 
@@ -86,7 +89,10 @@ func (m *UserMapping) Matches(subject string) bool {
 	}
 
 	// As per RoleMapping.Matches, we can ignore the error here
-	ok, _ := arnlike.ArnLike(subject, m.UserARNLike)
+	var ok bool
+	if ARNLikeMatchEnabled {
+		ok, _ = arnlike.ArnLike(subject, m.UserARNLike)
+	}
 	return ok
 }
 
