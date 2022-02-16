@@ -96,9 +96,9 @@ var addRoleCmd = &cobra.Command{
 			fmt.Printf("only one of --rolearn or --rolearnlike can be supplied")
 			os.Exit(1)
 		case roleARN != "":
-			arnOrArnLike = "userarn"
+			arnOrArnLike = "rolearn"
 		case roleARNLike != "":
-			arnOrArnLike = "userarnlike"
+			arnOrArnLike = "rolearnlike"
 		}
 
 		checkPrompt(fmt.Sprintf("add %s %s, username %s, groups %s", arnOrArnLike, roleARN, userName, groups))
