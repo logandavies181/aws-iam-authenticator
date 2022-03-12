@@ -35,29 +35,6 @@ func TestAddUser(t *testing.T) {
 	if _, err := cli.AddRole(&config.RoleMapping{RoleARN: "a"}); err == nil || !strings.Contains(err.Error(), `cannot add duplicate role ARN`) {
 		t.Fatal(err)
 	}
-
-	newUserArnLike := config.UserMapping{UserARN: "", UserARNLike: "arn:aws:iam::0123456789012:user/?", Username: "b", Groups: []string{"b"}}
-	cm, err = cli.AddUser(&newUserArnLike)
-	if err != nil {
-		t.Fatal(err)
-	}
-	ual, _, _, err := configmap.ParseMap(cm.Data)
-	if err != nil {
-		t.Fatal(err)
-	}
-	updatedUser = ual[0]
-	if !reflect.DeepEqual(newUserArnLike, updatedUser) {
-		t.Fatalf("unexpected updated userarnLike %+v", updatedUser)
-	}
-
-	cli = makeTestClient(t,
-		[]config.UserMapping{newUserArnLike},
-		nil,
-		nil,
-	)
-	if _, err := cli.AddUser(&newUserArnLike); err == nil || !strings.Contains(err.Error(), `cannot add duplicate user ARN`) {
-		t.Fatal(err)
-	}
 }
 
 func TestAddRole(t *testing.T) {
@@ -91,8 +68,15 @@ func TestAddRole(t *testing.T) {
 		nil,
 		nil,
 	)
-	newRoleArnLike := config.RoleMapping{RoleARN: "", RoleARNLike: "arn:aws:iam::0123456789012:role/test-*", Username: "b", Groups: []string{"b"}}
-	cm, err = cli.AddRole(&newRoleArnLike)
+	newSSORole := config.RoleMapping{
+		RoleARN: "",
+		SSO: &config.SSOARNMatcher{
+			PermissionSetName: "ViewOnlyAccess",
+			AccountID:         "012345678912",
+		},
+		Username: "b",
+		Groups:   []string{"b"}}
+	cm, err = cli.AddRole(&newSSORole)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,16 +85,16 @@ func TestAddRole(t *testing.T) {
 		t.Fatal(err)
 	}
 	updatedRole = ral[0]
-	if !reflect.DeepEqual(newRoleArnLike, updatedRole) {
+	if !reflect.DeepEqual(newSSORole, updatedRole) {
 		t.Fatalf("unexpected updated role %+v", updatedRole)
 	}
 
 	cli = makeTestClient(t,
 		nil,
-		[]config.RoleMapping{newRoleArnLike},
+		[]config.RoleMapping{newSSORole},
 		nil,
 	)
-	if _, err := cli.AddRole(&newRoleArnLike); err == nil || !strings.Contains(err.Error(), `cannot add duplicate role ARN`) {
+	if _, err := cli.AddRole(&newSSORole); err == nil || !strings.Contains(err.Error(), `cannot add duplicate role ARN`) {
 		t.Fatal(err)
 	}
 }

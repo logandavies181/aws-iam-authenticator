@@ -7,31 +7,47 @@ import (
 	"github.com/logandavies181/arnlike"
 )
 
+// SSOArnLike returns a string that can be passed to arnlike.ArnLike to
+// match canonicalized IAM Role ARNs against. Assumes Validate() has been called.
+func (m *RoleMapping) SSOArnLike() string {
+	if m.SSO == nil {
+		return ""
+	}
+
+	var partition string
+	if m.SSO.Partition == "" {
+		partition = "aws"
+	}
+
+	return strings.ToLower(fmt.Sprintf("arn:%s:iam::%s:role/AWSReservedSSO_%s_*", partition, m.SSO.AccountID, m.SSO.PermissionSetName))
+}
+
 // Validate returns an error if the RoleMapping is not valid after being unmarshaled
 func (m *RoleMapping) Validate() error {
 	if m == nil {
 		return fmt.Errorf("RoleMapping is nil")
 	}
 
-	if m.RoleARN == "" && m.RoleARNLike == "" {
-		return fmt.Errorf("One of rolearn or rolearnLike must be supplied")
-	} else if m.RoleARN != "" && m.RoleARNLike != "" {
-		return fmt.Errorf("Only one of rolearn or rolearnLike can be supplied")
+	if m.RoleARN == "" && m.SSO == nil {
+		return fmt.Errorf("One of rolearn or SSO must be supplied")
+	} else if m.RoleARN != "" && m.SSO != nil {
+		return fmt.Errorf("Only one of rolearn or SSO can be supplied")
 	}
 
-	if m.RoleARNLike != "" {
-		ok, err := arnlike.ArnLike(m.RoleARNLike, "arn:*:iam:*:*:role/*")
+	if m.SSO != nil {
+		ssoArnLikeString := m.SSOArnLike()
+		ok, err := arnlike.ArnLike(ssoArnLikeString, "arn:*:iam:*:*:role/*")
 		if err != nil {
 			return err
 		} else if !ok {
-			return fmt.Errorf("RoleARNLike '%s' did not match an ARN for an IAM Role", m.RoleARNLike)
+			return fmt.Errorf("SSOArnLike '%s' did not match an ARN for a canonicalized IAM Role", ssoArnLikeString)
 		}
 	}
 
 	return nil
 }
 
-// Matches returns true if the supplied ARN or ARN-like string matches
+// Matches returns true if the supplied ARN or SSO settings matches
 // this RoleMapping
 func (m *RoleMapping) Matches(subject string) bool {
 	if m.RoleARN != "" {
@@ -43,18 +59,18 @@ func (m *RoleMapping) Matches(subject string) bool {
 	// we can ignore the error here
 	var ok bool
 	if ARNLikeMatchEnabled {
-		ok, _ = arnlike.ArnLike(subject, m.RoleARNLike)
+		ok, _ = arnlike.ArnLike(subject, m.SSOArnLike())
 	}
 	return ok
 }
 
-// Key returns RoleARN or RoleARNLike, whichever is not empty.
+// Key returns RoleARN or SSOArnLike(), whichever is not empty.
 // Used to get a Key name for map[string]RoleMapping
 func (m *RoleMapping) Key() string {
 	if m.RoleARN != "" {
 		return m.RoleARN
 	}
-	return m.RoleARNLike
+	return m.SSOArnLike()
 }
 
 // Validate returns an error if the UserMapping is not valid after being unmarshaled
@@ -63,44 +79,20 @@ func (m *UserMapping) Validate() error {
 		return fmt.Errorf("UserMapping is nil")
 	}
 
-	if m.UserARN == "" && m.UserARNLike == "" {
-		return fmt.Errorf("One of userarn or userarnLike must be supplied")
-	} else if m.UserARN != "" && m.UserARNLike != "" {
-		return fmt.Errorf("Only one of userarn or userarnLike can be supplied")
-	}
-
-	if m.UserARNLike != "" {
-		ok, err := arnlike.ArnLike(m.UserARNLike, "arn:*:iam:*:*:user/*")
-		if err != nil {
-			return err
-		} else if !ok {
-			return fmt.Errorf("UserARNLike '%s' did not match an ARN for an IAM User", m.UserARNLike)
-		}
+	if m.UserARN == "" {
+		return fmt.Errorf("Value for userarn must be supplied")
 	}
 
 	return nil
 }
 
-// Matches returns true if the supplied ARN or ARN-like string matches
-// this UserMapping
+// Matches returns true if the supplied ARN string matche this UserMapping
 func (m *UserMapping) Matches(subject string) bool {
-	if m.UserARN != "" {
-		return strings.ToLower(m.UserARN) == strings.ToLower(subject)
-	}
-
-	// As per RoleMapping.Matches, we can ignore the error here
-	var ok bool
-	if ARNLikeMatchEnabled {
-		ok, _ = arnlike.ArnLike(subject, m.UserARNLike)
-	}
-	return ok
+	return strings.ToLower(m.UserARN) == strings.ToLower(subject)
 }
 
-// Key returns UserARN or UserARNLike, whichever is not empty.
+// Key returns UserARN.
 // Used to get a Key name for map[string]UserMapping
 func (m *UserMapping) Key() string {
-	if m.UserARN != "" {
-		return m.UserARN
-	}
-	return m.UserARNLike
+	return m.UserARN
 }

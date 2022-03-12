@@ -16,13 +16,16 @@ func newConfig() config.Config {
 		RoleMappings: []config.RoleMapping{
 			{
 				RoleARN:  "arn:aws:iam::0123456789012:role/test-role",
-				Username: "roland",
+				Username: "shreyas",
 				Groups:   []string{"system:masters"},
 			},
 			{
-				RoleARNLike: "arn:aws:iam::0123456789012:role/cookie-cutt*",
-				Username:    "cookie-cutter",
-				Groups:      []string{"system:masters"},
+				SSO: &config.SSOARNMatcher{
+					PermissionSetName: "CookieCutterPermissions",
+					AccountID:         "0123456789012",
+				},
+				Username: "cookie-cutter",
+				Groups:   []string{"system:masters"},
 			},
 		},
 		UserMappings: []config.UserMapping{
@@ -30,11 +33,6 @@ func newConfig() config.Config {
 				UserARN:  "arn:aws:iam::0123456789012:user/donald",
 				Username: "donald",
 				Groups:   []string{"system:masters"},
-			},
-			{
-				UserARNLike: "arn:aws:iam::0123456789012:user/shrey*",
-				Username:    "shreyas",
-				Groups:      []string{"system:masters"},
 			},
 		},
 		AutoMappedAWSAccounts: []string{"000000000000"},
@@ -48,13 +46,16 @@ func TestNewFileMapper(t *testing.T) {
 		roleMap: map[string]config.RoleMapping{
 			"arn:aws:iam::0123456789012:role/test-role": {
 				RoleARN:  "arn:aws:iam::0123456789012:role/test-role",
-				Username: "roland",
+				Username: "shreyas",
 				Groups:   []string{"system:masters"},
 			},
-			"arn:aws:iam::0123456789012:role/cookie-cutt*": {
-				RoleARNLike: "arn:aws:iam::0123456789012:role/cookie-cutt*",
-				Username:    "cookie-cutter",
-				Groups:      []string{"system:masters"},
+			"arn:aws:iam::0123456789012:role/awsreservedsso_cookiecutterpermissions_*": {
+				SSO: &config.SSOARNMatcher{
+					PermissionSetName: "CookieCutterPermissions",
+					AccountID:         "0123456789012",
+				},
+				Username: "cookie-cutter",
+				Groups:   []string{"system:masters"},
 			},
 		},
 		userMap: map[string]config.UserMapping{
@@ -62,11 +63,6 @@ func TestNewFileMapper(t *testing.T) {
 				UserARN:  "arn:aws:iam::0123456789012:user/donald",
 				Username: "donald",
 				Groups:   []string{"system:masters"},
-			},
-			"arn:aws:iam::0123456789012:user/shrey*": {
-				UserARNLike: "arn:aws:iam::0123456789012:user/shrey*",
-				Username:    "shreyas",
-				Groups:      []string{"system:masters"},
 			},
 		},
 		accountMap: map[string]bool{
@@ -93,7 +89,7 @@ func TestMap(t *testing.T) {
 	identityArn := "arn:aws:iam::0123456789012:role/test-role"
 	expected := &config.IdentityMapping{
 		IdentityARN: identityArn,
-		Username:    "roland",
+		Username:    "shreyas",
 		Groups:      []string{"system:masters"},
 	}
 	actual, err := fm.Map(identityArn)
@@ -104,7 +100,7 @@ func TestMap(t *testing.T) {
 		t.Errorf("FileMapper.Map() does not match expected value for roleMapping:\nActual:   %v\nExpected: %v", actual, expected)
 	}
 
-	identityArn = "arn:aws:iam::0123456789012:role/cookie-cutt*"
+	identityArn = "arn:aws:iam::0123456789012:role/awsreservedsso_cookiecutterpermissions_123123123"
 	expected = &config.IdentityMapping{
 		IdentityARN: identityArn,
 		Username:    "cookie-cutter",
@@ -130,19 +126,5 @@ func TestMap(t *testing.T) {
 	}
 	if !reflect.DeepEqual(actual, expected) {
 		t.Errorf("FileMapper.Map() does not match expected value for userMapping:\nActual:   %v\nExpected: %v", actual, expected)
-	}
-
-	identityArn = "arn:aws:iam::0123456789012:user/shrey*"
-	expected = &config.IdentityMapping{
-		IdentityARN: identityArn,
-		Username:    "shreyas",
-		Groups:      []string{"system:masters"},
-	}
-	actual, err = fm.Map(identityArn)
-	if err != nil {
-		t.Errorf("Could not map %s: %s", identityArn, err)
-	}
-	if !reflect.DeepEqual(actual, expected) {
-		t.Errorf("FileMapper.Map() does not match expected value for userArnLikeMapping:\nActual:   %v\nExpected: %v", actual, expected)
 	}
 }

@@ -41,30 +41,18 @@ var addUserCmd = &cobra.Command{
 	Short: "add a user entity to an existing aws-auth configmap, not for CRD/file backends",
 	Long:  "NOTE: this does not currently support the CRD and file backends",
 	Run: func(cmd *cobra.Command, args []string) {
-		if (userARN == "" && userARNLike == "") || userName == "" || len(groups) == 0 {
-			fmt.Printf("invalid empty value in userARN %q, username %q, groups %q", userARN, userName, groups)
+		if userARN == "" || userName == "" || len(groups) == 0 {
+			fmt.Printf("invalid empty value in userARN %q, username %q, groups %q\n", userARN, userName, groups)
 			os.Exit(1)
 		}
 
-		var arnOrArnLike string
-		switch {
-		case userARN != "" && userARNLike != "":
-			fmt.Printf("only one of --userarn or --userarnlike can be supplied")
-			os.Exit(1)
-		case userARN != "":
-			arnOrArnLike = "userarn"
-		case userARNLike != "":
-			arnOrArnLike = "userarnlike"
-		}
-
-		checkPrompt(fmt.Sprintf("add %s %s, username %s, groups %s", arnOrArnLike, userARN, userName, groups))
+		checkPrompt(fmt.Sprintf("add rolearn %s, username %s, groups %s", roleARN, userName, groups))
 		cli := createClient()
 
 		cm, err := cli.AddUser(&config.UserMapping{
-			UserARN:     userARN,
-			UserARNLike: userARNLike,
-			Username:    userName,
-			Groups:      groups,
+			UserARN:  userARN,
+			Username: userName,
+			Groups:   groups,
 		})
 		if err != nil {
 			fmt.Println(err)
@@ -85,30 +73,55 @@ var addRoleCmd = &cobra.Command{
 	Short: "add a role entity to an existing aws-auth configmap, not for CRD/file backends",
 	Long:  "NOTE: this does not currently support the CRD and file backends",
 	Run: func(cmd *cobra.Command, args []string) {
-		if (roleARN == "" && roleARNLike == "") || userName == "" || len(groups) == 0 {
-			fmt.Printf("invalid empty value in rolearn %q, username %q, groups %q", roleARN, userName, groups)
+		if (roleARN == "" && ssoRole == nil) || userName == "" || len(groups) == 0 {
+			fmt.Printf("invalid empty value in rolearn %q, username %q, groups %q\n", roleARN, userName, groups)
 			os.Exit(1)
 		}
 
-		var arnOrArnLike string
+		var arnOrSSORole string
 		switch {
-		case roleARN != "" && roleARNLike != "":
-			fmt.Printf("only one of --rolearn or --rolearnlike can be supplied")
+		case roleARN != "" && ssoRole != nil:
+			fmt.Printf("only one of --rolearn or --sso can be supplied\n")
 			os.Exit(1)
 		case roleARN != "":
-			arnOrArnLike = "rolearn"
-		case roleARNLike != "":
-			arnOrArnLike = "rolearnlike"
-		}
+			arnOrSSORole = "rolearn"
+		case ssoRole != nil:
+			arnOrSSORole = "sso"
 
-		checkPrompt(fmt.Sprintf("add %s %s, username %s, groups %s", arnOrArnLike, roleARN, userName, groups))
+			for _, key := range []string{"permissionSetName", "accountID"} {
+				if _, ok := ssoRole[key]; !ok {
+					fmt.Printf("required key '%s' missing from --sso flag\n", key)
+					os.Exit(1)
+				}
+			}
+
+			var ssoPartition string
+			if partition, ok := ssoRole["partition"]; !ok {
+				ssoPartition = "aws"
+			} else {
+				ssoPartition = partition
+			}
+			ssoRoleConfig.PermissionSetName = ssoRole["permissionSetName"]
+			ssoRoleConfig.AccountID = ssoRole["accountID"]
+			ssoRoleConfig.Partition = ssoPartition
+
+			rm := config.RoleMapping{SSO: ssoRoleConfig}
+			err := rm.Validate()
+			if err != nil {
+				fmt.Printf("error validating --sso: %s\n", err)
+				os.Exit(1)
+			}
+		}
+		fmt.Println(ssoRole)
+
+		checkPrompt(fmt.Sprintf("add %s %s, username %s, groups %s", arnOrSSORole, roleARN, userName, groups))
 		cli := createClient()
 
 		cm, err := cli.AddRole(&config.RoleMapping{
-			RoleARN:     roleARN,
-			RoleARNLike: roleARNLike,
-			Username:    userName,
-			Groups:      groups,
+			RoleARN:  roleARN,
+			SSO:      ssoRoleConfig,
+			Username: userName,
+			Groups:   groups,
 		})
 		if err != nil {
 			fmt.Println(err)
@@ -194,12 +207,12 @@ var (
 	kubeconfigPath    string
 	kubeconfigContext string
 
-	userARN     string
-	userARNLike string
-	userName    string
-	groups      []string
-	roleARN     string
-	roleARNLike string
+	userARN       string
+	userName      string
+	groups        []string
+	roleARN       string
+	ssoRole       map[string]string
+	ssoRoleConfig *config.SSOARNMatcher
 )
 
 func init() {
@@ -213,12 +226,11 @@ func init() {
 	addCmd.PersistentFlags().StringVar(&kubeconfigContext, "kubeconfig-context", "", "kubeconfig context, if empty, it uses the default context")
 
 	addUserCmd.PersistentFlags().StringVar(&userARN, "userarn", "", "A new user ARN")
-	addUserCmd.PersistentFlags().StringVar(&userARNLike, "userarnlike", "", "A new arnlike pattern to match user ARNs")
 	addUserCmd.PersistentFlags().StringVar(&userName, "username", "", "A new user name")
 	addUserCmd.PersistentFlags().StringSliceVar(&groups, "groups", nil, "A new user groups")
 
 	addRoleCmd.PersistentFlags().StringVar(&roleARN, "rolearn", "", "A new role ARN")
-	addRoleCmd.PersistentFlags().StringVar(&roleARNLike, "rolearnlike", "", "A new arnlike pattern to match role ARNs")
+	addRoleCmd.PersistentFlags().StringToStringVar(&ssoRole, "sso", nil, "Settings for a new SSO role")
 	addRoleCmd.PersistentFlags().StringVar(&userName, "username", "", "A new user name")
 	addRoleCmd.PersistentFlags().StringSliceVar(&groups, "groups", nil, "A new role groups")
 }

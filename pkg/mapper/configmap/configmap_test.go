@@ -19,10 +19,18 @@ func init() {
 	config.ARNLikeMatchEnabled = true
 }
 
-var testUser = config.UserMapping{UserARN: "arn:aws:iam::012345678912:user/matt", Username: "matlan", Groups: []string{"system:master", "dev"}}
-var testRole = config.RoleMapping{RoleARN: "arn:aws:iam::012345678912:role/computer", Username: "computer", Groups: []string{"system:nodes"}}
-var testUserArnLike = config.UserMapping{UserARNLike: "arn:aws:iam::012345678912:user/log??", Username: "logan", Groups: []string{"system:master", "dev"}}
-var testRoleArnLike = config.RoleMapping{RoleARNLike: "arn:aws:iam::012345678912:role/tele*", Username: "television", Groups: []string{"system:nodes"}}
+var (
+	testUser    = config.UserMapping{UserARN: "arn:aws:iam::012345678912:user/matt", Username: "matlan", Groups: []string{"system:master", "dev"}}
+	testRole    = config.RoleMapping{RoleARN: "arn:aws:iam::012345678912:role/computer", Username: "computer", Groups: []string{"system:nodes"}}
+	testSSORole = config.RoleMapping{
+		SSO: &config.SSOARNMatcher{
+			PermissionSetName: "ViewOnlyAccess",
+			AccountID:         "012345678912",
+		},
+		Username: "television",
+		Groups:   []string{"system:nodes"},
+	}
+)
 
 func makeStore() MapStore {
 	ms := MapStore{
@@ -31,8 +39,7 @@ func makeStore() MapStore {
 		awsAccounts: make(map[string]interface{}),
 	}
 	ms.users["arn:aws:iam::012345678912:user/matt"] = testUser
-	ms.users["arn:aws:iam::012345678912:user/log??"] = testUserArnLike
-	ms.roles["arn:aws:iam::012345678912:role/television"] = testRoleArnLike
+	ms.roles["arn:aws:iam::012345678912:role/awsreservedsso_viewonlyaccess_*"] = testSSORole
 	ms.roles["arn:aws:iam::012345678912:role/comp*"] = testRole
 	ms.awsAccounts["123"] = nil
 	return ms
@@ -88,41 +95,14 @@ func TestRoleMapping(t *testing.T) {
 	}
 }
 
-func TestUserArnLikeMapping(t *testing.T) {
+func TestSSORoleMapping(t *testing.T) {
 	ms := makeStore()
-	user, err := ms.UserMapping("arn:aws:iam::012345678912:user/logan")
+	role, err := ms.RoleMapping("arn:aws:iam::012345678912:role/awsreservedsso_viewonlyaccess_123123123")
 	if err != nil {
-		t.Errorf("Could not find a match for user arn 'arn:aws:iam::012345678912:user/logan' in map")
+		t.Errorf("Could not find a match for role arn 'arn:aws:iam::012345678912:role/awsreservedsso_viewonlyaccess_123123123' in map")
 	}
-	if !reflect.DeepEqual(user, testUserArnLike) {
-		t.Errorf("User arn 'arn:aws:iam::012345678912:user/logan' does not match expected values. (Actual: %+v, Expected: %+v", user, testUserArnLike)
-	}
-
-	user, err = ms.UserMapping("arn:aws:iam::012345678912:user/adaire")
-	if err != UserNotFound {
-		t.Errorf("UserNotFound error was not returned for user arn 'arn:aws:iam::012345678912:user/adaire'")
-	}
-	if !reflect.DeepEqual(user, config.UserMapping{}) {
-		t.Errorf("User value returned when user is not matched was not empty: %+v", user)
-	}
-}
-
-func TestRoleArnLikeMapping(t *testing.T) {
-	ms := makeStore()
-	role, err := ms.RoleMapping("arn:aws:iam::012345678912:role/television")
-	if err != nil {
-		t.Errorf("Could not find a match for role arn 'arn:aws:iam::012345678912:role/television' in map")
-	}
-	if !reflect.DeepEqual(role, testRoleArnLike) {
-		t.Errorf("Role arn 'arn:aws:iam::012345678912:role/television' does not match expected value. (Acutal: %+v, Expected: %+v", role, testRoleArnLike)
-	}
-
-	role, err = ms.RoleMapping("arn:aws:iam::012345678912:role/monitor")
-	if err != RoleNotFound {
-		t.Errorf("RoleNotFound error was not returned for role arn 'arn:aws:iam::012345678912:role/monitor'")
-	}
-	if !reflect.DeepEqual(role, config.RoleMapping{}) {
-		t.Errorf("Role value returned when role is not matched was not empty: %+v", role)
+	if !reflect.DeepEqual(role, testSSORole) {
+		t.Errorf("Role arn 'arn:aws:iam::012345678912:role/awsreservedsso_viewonlyaccess_123123123' does not match expected value. (Acutal: %+v, Expected: %+v", role, testSSORole)
 	}
 }
 
@@ -284,43 +264,47 @@ func TestLoadConfigMap(t *testing.T) {
 func TestParseMap(t *testing.T) {
 	m1 := map[string]string{
 		"mapRoles": `- rolearn: arn:aws:iam::123456789101:role/test-NodeInstanceRole-1VWRHZ3GKZ1T4
-  rolearnLike: ""
   username: system:node:{{EC2PrivateDNSName}}
   groups:
   - system:bootstrappers
   - system:nodes
-- rolearn: ""
-  rolearnLike: arn:aws:iam::123456789101:role/test-NodeInstanceRole-*
-  username: system:node:{{EC2PrivateDNSName}}
+- sso:
+    permissionSetName: ViewOnlyAccess
+    accountID: "012345678912"
+    partition: aws-cn
+  username: user1
   groups:
-  - system:bootstrappers
-  - system:nodes
+  - system:basic-users
 `,
 		"mapUsers": `- userarn: arn:aws:iam::123456789101:user/Hello
-  userarnLike: ""
   username: Hello
   groups:
   - system:masters
 - userarn: arn:aws:iam::123456789101:user/World
-  userarnLike: ""
   username: World
-  groups:
-  - system:masters
-- userarn: ""
-  userarnLike: arn:aws:iam::123456789101:user/Its??
-  username: ItsMe
   groups:
   - system:masters
 `,
 	}
 	userMappings := []config.UserMapping{
-		{UserARN: "arn:aws:iam::123456789101:user/Hello", UserARNLike: "", Username: "Hello", Groups: []string{"system:masters"}},
-		{UserARN: "arn:aws:iam::123456789101:user/World", UserARNLike: "", Username: "World", Groups: []string{"system:masters"}},
-		{UserARN: "", UserARNLike: "arn:aws:iam::123456789101:user/Its??", Username: "ItsMe", Groups: []string{"system:masters"}},
+		{UserARN: "arn:aws:iam::123456789101:user/Hello", Username: "Hello", Groups: []string{"system:masters"}},
+		{UserARN: "arn:aws:iam::123456789101:user/World", Username: "World", Groups: []string{"system:masters"}},
 	}
 	roleMappings := []config.RoleMapping{
-		{RoleARN: "arn:aws:iam::123456789101:role/test-NodeInstanceRole-1VWRHZ3GKZ1T4", RoleARNLike: "", Username: "system:node:{{EC2PrivateDNSName}}", Groups: []string{"system:bootstrappers", "system:nodes"}},
-		{RoleARN: "", RoleARNLike: "arn:aws:iam::123456789101:role/test-NodeInstanceRole-*", Username: "system:node:{{EC2PrivateDNSName}}", Groups: []string{"system:bootstrappers", "system:nodes"}},
+		{
+			RoleARN:  "arn:aws:iam::123456789101:role/test-NodeInstanceRole-1VWRHZ3GKZ1T4",
+			Username: "system:node:{{EC2PrivateDNSName}}",
+			Groups:   []string{"system:bootstrappers", "system:nodes"},
+		},
+		{
+			SSO: &config.SSOARNMatcher{
+				PermissionSetName: "ViewOnlyAccess",
+				AccountID:         "012345678912",
+				Partition:         "aws-cn",
+			},
+			Username: "user1",
+			Groups:   []string{"system:basic-users"},
+		},
 	}
 	accounts := []string{}
 
