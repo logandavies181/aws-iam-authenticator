@@ -114,10 +114,10 @@ func getConfig() (config.Config, error) {
 	}
 	if featureGateString := viper.GetString("feature-gates"); featureGateString != "" {
 		for _, fg := range strings.Split(featureGateString, ",") {
-			if strings.Contains(fg, string(config.ARNLikeMatch)) &&
+			if strings.Contains(fg, string(config.SSORoleMatch)) &&
 				strings.Contains(fg, "true") {
-				logrus.Info("ARNLikeMatch feature enabled")
-				config.ARNLikeMatchEnabled = true
+				logrus.Info("SSORoleMatch feature enabled")
+				config.SSORoleMatchEnabled = true
 			}
 		}
 	}

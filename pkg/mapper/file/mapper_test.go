@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	config.ARNLikeMatchEnabled = true
+	config.SSORoleMatchEnabled = true
 }
 
 func newConfig() config.Config {

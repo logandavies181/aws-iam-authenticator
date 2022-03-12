@@ -16,7 +16,7 @@ import (
 )
 
 func init() {
-	config.ARNLikeMatchEnabled = true
+	config.SSORoleMatchEnabled = true
 }
 
 var (

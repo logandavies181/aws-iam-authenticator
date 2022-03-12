@@ -23,13 +23,14 @@ import (
 const (
 	// IAMIdentityMappingCRD enables using CRDs to manage allowed users
 	IAMIdentityMappingCRD featuregate.Feature = "IAMIdentityMappingCRD"
-	// ARNLikeMatch enables using ARNLike string patterns to match allowed users and roles
-	ARNLikeMatch featuregate.Feature = "ARNLikeMatch"
+	// SSORoleMatch enables matching roles managed by AWS SSO, with handling
+	// for their randomly generated suffixes
+	SSORoleMatch featuregate.Feature = "SSORoleMatch"
 )
 
-var ARNLikeMatchEnabled bool
+var SSORoleMatchEnabled bool
 
 var DefaultFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	IAMIdentityMappingCRD: {Default: false, PreRelease: featuregate.Alpha},
-	ARNLikeMatch:          {Default: false, PreRelease: featuregate.Alpha},
+	SSORoleMatch:          {Default: false, PreRelease: featuregate.Alpha},
 }

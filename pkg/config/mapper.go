@@ -58,7 +58,7 @@ func (m *RoleMapping) Matches(subject string) bool {
 	// If subject is not parsable, then it cannot be a valid ARN anyway so
 	// we can ignore the error here
 	var ok bool
-	if ARNLikeMatchEnabled {
+	if SSORoleMatchEnabled {
 		ok, _ = arnlike.ArnLike(subject, m.SSOArnLike())
 	}
 	return ok

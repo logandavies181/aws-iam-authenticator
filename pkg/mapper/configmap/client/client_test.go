@@ -80,11 +80,11 @@ func TestAddRole(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, ral, _, err := configmap.ParseMap(cm.Data)
+	_, srm, _, err := configmap.ParseMap(cm.Data)
 	if err != nil {
 		t.Fatal(err)
 	}
-	updatedRole = ral[0]
+	updatedRole = srm[0]
 	if !reflect.DeepEqual(newSSORole, updatedRole) {
 		t.Fatalf("unexpected updated role %+v", updatedRole)
 	}

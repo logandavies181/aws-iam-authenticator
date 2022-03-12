@@ -46,7 +46,7 @@ var addUserCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		checkPrompt(fmt.Sprintf("add rolearn %s, username %s, groups %s", roleARN, userName, groups))
+		checkPrompt(fmt.Sprintf("add userarn %s, username %s, groups %s", userARN, userName, groups))
 		cli := createClient()
 
 		cm, err := cli.AddUser(&config.UserMapping{
