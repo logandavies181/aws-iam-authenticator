@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/logandavies181/arnlike"
@@ -35,10 +36,30 @@ func (m *RoleMapping) Validate() error {
 	}
 
 	if m.SSO != nil {
+		accountIDRegexp := regexp.MustCompile("^[0-9]{12}$")
+		if !accountIDRegexp.MatchString(m.SSO.AccountID) {
+			return fmt.Errorf("AccountID '%s' is not a valid AWS Account ID", m.SSO.AccountID)
+		}
+
+		// https://docs.aws.amazon.com/singlesignon/latest/APIReference/API_PermissionSet.html
+		permissionSetNameRegexp := regexp.MustCompile(`^[\w+=,.@-]{1,32}$`)
+		if !permissionSetNameRegexp.MatchString(m.SSO.PermissionSetName) {
+			return fmt.Errorf("PermissionSetName '%s' is not a valid AWS SSO PermissionSet Name", m.SSO.PermissionSetName)
+		}
+
+		switch m.SSO.Partition {
+		case "aws", "aws-cn", "aws-us-gov":
+			// valid
+		case "":
+			// treated as "aws"
+		default:
+			return fmt.Errorf("Partition '%s' is not a valid AWS partition", m.SSO.Partition)
+		}
+
 		ssoArnLikeString := m.SSOArnLike()
 		ok, err := arnlike.ArnLike(ssoArnLikeString, "arn:*:iam:*:*:role/*")
 		if err != nil {
-			return err
+			return fmt.Errorf("SSOArnLike '%s' is not valid: %v", ssoArnLikeString, err)
 		} else if !ok {
 			return fmt.Errorf("SSOArnLike '%s' did not match an ARN for a canonicalized IAM Role", ssoArnLikeString)
 		}
