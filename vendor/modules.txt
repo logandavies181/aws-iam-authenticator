@@ -119,9 +119,6 @@ github.com/jmespath/go-jmespath
 github.com/josharian/intern
 # github.com/json-iterator/go v1.1.11
 github.com/json-iterator/go
-# github.com/logandavies181/arnlike v1.1.0
-## explicit
-github.com/logandavies181/arnlike
 # github.com/magiconair/properties v1.8.1
 github.com/magiconair/properties
 # github.com/mailru/easyjson v0.7.6

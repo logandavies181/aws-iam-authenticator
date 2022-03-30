@@ -1,4 +1,4 @@
-package arnlike
+package arn
 
 import (
 	"fmt"

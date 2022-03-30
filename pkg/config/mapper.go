@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/logandavies181/arnlike"
+	"sigs.k8s.io/aws-iam-authenticator/pkg/arn"
 )
 
 // SSOArnLike returns a string that can be passed to arnlike.ArnLike to
@@ -57,7 +57,7 @@ func (m *RoleMapping) Validate() error {
 		}
 
 		ssoArnLikeString := m.SSOArnLike()
-		ok, err := arnlike.ArnLike(ssoArnLikeString, "arn:*:iam:*:*:role/*")
+		ok, err := arn.ArnLike(ssoArnLikeString, "arn:*:iam:*:*:role/*")
 		if err != nil {
 			return fmt.Errorf("SSOArnLike '%s' is not valid: %v", ssoArnLikeString, err)
 		} else if !ok {
@@ -80,7 +80,7 @@ func (m *RoleMapping) Matches(subject string) bool {
 	// we can ignore the error here
 	var ok bool
 	if SSORoleMatchEnabled {
-		ok, _ = arnlike.ArnLike(subject, m.SSOArnLike())
+		ok, _ = arn.ArnLike(subject, m.SSOArnLike())
 	}
 	return ok
 }

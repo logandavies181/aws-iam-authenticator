@@ -5,7 +5,6 @@ go 1.16
 require (
 	github.com/aws/aws-sdk-go v1.38.49
 	github.com/gofrs/flock v0.7.0
-	github.com/logandavies181/arnlike v1.1.0
 	github.com/manifoldco/promptui v0.9.0
 	github.com/prometheus/client_golang v1.11.0
 	github.com/sirupsen/logrus v1.8.1

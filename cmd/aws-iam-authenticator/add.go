@@ -112,7 +112,6 @@ var addRoleCmd = &cobra.Command{
 				os.Exit(1)
 			}
 		}
-		fmt.Println(ssoRole)
 
 		checkPrompt(fmt.Sprintf("add %s %s, username %s, groups %s", arnOrSSORole, roleARN, userName, groups))
 		cli := createClient()
@@ -207,10 +206,12 @@ var (
 	kubeconfigPath    string
 	kubeconfigContext string
 
-	userARN       string
-	userName      string
-	groups        []string
-	roleARN       string
+	userARN  string
+	userName string
+	groups   []string
+	roleARN  string
+	// ssoRole contains the settings for a config.SSOARNMatcher
+	// it expects the keys "permissionSetName", "accountID", and "partition" (optional)
 	ssoRole       map[string]string
 	ssoRoleConfig *config.SSOARNMatcher
 )
@@ -230,7 +231,7 @@ func init() {
 	addUserCmd.PersistentFlags().StringSliceVar(&groups, "groups", nil, "A new user groups")
 
 	addRoleCmd.PersistentFlags().StringVar(&roleARN, "rolearn", "", "A new role ARN")
-	addRoleCmd.PersistentFlags().StringToStringVar(&ssoRole, "sso", nil, "Settings for a new SSO role")
+	addRoleCmd.PersistentFlags().StringToStringVar(&ssoRole, "sso", nil, `Settings for a new SSO role. Expects "permissionSetName", "accountID", and "partition" (optional)`)
 	addRoleCmd.PersistentFlags().StringVar(&userName, "username", "", "A new user name")
 	addRoleCmd.PersistentFlags().StringSliceVar(&groups, "groups", nil, "A new role groups")
 }
