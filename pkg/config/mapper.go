@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"sigs.k8s.io/aws-iam-authenticator/pkg/arn"
+
+	"github.com/sirupsen/logrus"
 )
 
 // SSOArnLike returns a string that can be passed to arnlike.ArnLike to
@@ -80,7 +82,11 @@ func (m *RoleMapping) Matches(subject string) bool {
 	// we can ignore the error here
 	var ok bool
 	if SSORoleMatchEnabled {
-		ok, _ = arn.ArnLike(subject, m.SSOArnLike())
+		var err error
+		ok, err = arn.ArnLike(subject, m.SSOArnLike())
+		if err != nil {
+			logrus.Error("Could not parse subject ARN: ", err)
+		}
 	}
 	return ok
 }
@@ -89,7 +95,7 @@ func (m *RoleMapping) Matches(subject string) bool {
 // Used to get a Key name for map[string]RoleMapping
 func (m *RoleMapping) Key() string {
 	if m.RoleARN != "" {
-		return m.RoleARN
+		return strings.ToLower(m.RoleARN)
 	}
 	return m.SSOArnLike()
 }

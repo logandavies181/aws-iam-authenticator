@@ -84,7 +84,7 @@ func TestRoleARNMapping(t *testing.T) {
 		Groups:   []string{"system:masters"},
 	}
 
-	expectedKey := "arn:aws:iam::012345678912:role/KubeAdmin"
+	expectedKey := "arn:aws:iam::012345678912:role/kubeadmin"
 	actualKey := rm.Key()
 
 	if !reflect.DeepEqual(actualKey, expectedKey) {
