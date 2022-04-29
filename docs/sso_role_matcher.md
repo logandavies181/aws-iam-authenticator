@@ -35,7 +35,7 @@ Users will now create mapRoles entries like:
 ```
   mapRoles: |
   - sso:
-      permissionSet: MyPermissionSet
+      permissionSetName: MyPermissionSet
       accountID: "000000000000"
     username: ...
     groups: ...
