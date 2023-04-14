@@ -19,7 +19,7 @@ jobs:
         aheadCount=$(git rev-list --left-right --count origin/main...origin/upstream | awk '{print $1}')
         if [[ "${aheadCount}" -gt 0 ]]
         then
-          gh pr create --base main --head upstream
+          gh pr create --base main --head upstream --title "PR From Upstream" --body "Rebase ${aheadCount} commits from upstream"
         fi
 
       env:
