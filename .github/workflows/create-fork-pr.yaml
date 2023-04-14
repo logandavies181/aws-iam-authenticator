@@ -14,5 +14,5 @@ jobs:
         persist-credentials: false
     - name: raise-pr
       run: gh pr create --base main
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
