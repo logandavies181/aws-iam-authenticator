@@ -1,4 +1,5 @@
 name: Sync From Upstream
+
 on:
   schedule:
   - cron:  "5 21 * * 0" # Monday 9:05am NZST

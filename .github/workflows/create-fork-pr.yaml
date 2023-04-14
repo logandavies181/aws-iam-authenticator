@@ -1,9 +1,9 @@
 name: PR From Upstream
 
 on:
-  push:
-    branches:
-      - 'upstream'
+  schedule:
+  - cron:  "5 22 * * 0" # Monday 10:05am NZST
+  workflow_dispatch:
 
 jobs:
   raise-pr:
@@ -13,6 +13,14 @@ jobs:
       with:
         persist-credentials: false
     - name: raise-pr
-      run: gh pr create --base main
+      run: |
+        # https://stackoverflow.com/a/27940027
+        aheadCount=$(git rev-list --left-right --count main...upstream | awk '{print $1}')
+        if [[ aheadCount -gt 0 ]]
+        then
+          gh pr create --base main --head upstream
+        fi
+
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      shell: bash
