@@ -11,15 +11,20 @@ jobs:
     steps:
     - uses: actions/checkout@v3
       with:
-        fetch-depth: 0
         persist-credentials: false
     - name: raise-pr
       run: |
         # https://stackoverflow.com/a/27940027
         aheadCount=$(git rev-list --left-right --count origin/main...origin/upstream | awk '{print $1}')
-        if [[ "${aheadCount}" -gt 0 ]]
+        syncPRCount=$(gh pr list --label upstream-sync | wc --lines)
+        if [[ "${aheadCount}" -gt 0 ]] && [[ "${syncPRCount}" -eq 0 ]]
         then
-          gh pr create --base main --head upstream --title "PR From Upstream" --body "Rebase ${aheadCount} commits from upstream"
+          gh pr create \
+            --base main \
+            --head upstream \
+            --label upstream-sync \
+            --title "PR From Upstream" \
+            --body "Rebase ${aheadCount} commits from upstream"
         fi
 
       env:
