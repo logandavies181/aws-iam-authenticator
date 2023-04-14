@@ -20,12 +20,15 @@ jobs:
         syncPRCount=$(gh pr list --label upstream-sync | wc --lines)
         if [[ "${aheadCount}" -gt 0 ]] && [[ "${syncPRCount}" -eq 0 ]]
         then
+          echo "Raising PR"
           gh pr create \
             --base main \
             --head upstream \
             --label upstream-sync \
             --title "PR From Upstream" \
             --body "Rebase ${aheadCount} commits from upstream"
+        else
+          echo "Skipping Raising PR. aheadCount: ${aheadCount}, syncPRCount: ${syncPRCount}"
         fi
 
       env:
