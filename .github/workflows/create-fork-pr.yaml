@@ -3,7 +3,7 @@ name: PR From Upstream
 on:
   push:
     branches:
-      - "upstream"
+      - 'upstream'
 
 jobs:
   raise-pr:
