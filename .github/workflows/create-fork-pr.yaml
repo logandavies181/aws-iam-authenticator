@@ -16,8 +16,8 @@ jobs:
     - name: raise-pr
       run: |
         # https://stackoverflow.com/a/27940027
-        aheadCount=$(git rev-list --left-right --count main...upstream | awk '{print $1}')
-        if [[ aheadCount -gt 0 ]]
+        aheadCount=$(git rev-list --left-right --count origin/main...origin/upstream | awk '{print $1}')
+        if [[ "${aheadCount}" -gt 0 ]]
         then
           gh pr create --base main --head upstream
         fi
