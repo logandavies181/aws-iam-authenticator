@@ -31,10 +31,10 @@ func (m *RoleMapping) Validate() error {
 		return fmt.Errorf("RoleMapping is nil")
 	}
 
-	if m.RoleARN == "" && m.SSO == nil {
-		return fmt.Errorf("One of rolearn or SSO must be supplied")
-	} else if m.RoleARN != "" && m.SSO != nil {
-		return fmt.Errorf("Only one of rolearn or SSO can be supplied")
+	if m.RoleARN == "" && m.SSO == nil && m.ArnLike == "" {
+		return fmt.Errorf("At least one of rolearn, arnlike or SSO must be supplied")
+	} else if m.RoleARN != "" && m.SSO != nil && m.ArnLike != "" {
+		return fmt.Errorf("Only one of rolearn, arnlike or SSO can be supplied")
 	}
 
 	if m.SSO != nil {
@@ -80,6 +80,14 @@ func (m *RoleMapping) Matches(subject string) bool {
 	// Assume the caller has called Validate(), which parses m.RoleARNLike
 	// If subject is not parsable, then it cannot be a valid ARN anyway so
 	// we can ignore the error here
+	if ArnLikeMatchEnabled {
+		ok, err := arn.ArnLike(subject, m.ArnLike)
+		if err != nil {
+			logrus.Error("Could not parse subject ARN: ", err)
+		}
+		return ok
+	}
+
 	var ok bool
 	if SSORoleMatchEnabled {
 		var err error
@@ -106,16 +114,33 @@ func (m *UserMapping) Validate() error {
 		return fmt.Errorf("UserMapping is nil")
 	}
 
-	if m.UserARN == "" {
-		return fmt.Errorf("Value for userarn must be supplied")
+	if m.UserARN == "" && m.ArnLike == "" {
+		return fmt.Errorf("At least one of userarn or arnlike must be supplied")
+	} else if m.UserARN != "" && m.ArnLike != "" {
+		return fmt.Errorf("Only one of userarn or arnlike can be supplied")
 	}
 
 	return nil
 }
 
-// Matches returns true if the supplied ARN string matche this UserMapping
+// Matches returns true if the supplied ARN string matches this UserMapping
 func (m *UserMapping) Matches(subject string) bool {
-	return strings.ToLower(m.UserARN) == strings.ToLower(subject)
+	if m.UserARN != "" {
+		return strings.ToLower(m.UserARN) == strings.ToLower(subject)
+	}
+
+	// Assume the caller has called Validate(), which parses m.RoleARNLike
+	// If subject is not parsable, then it cannot be a valid ARN anyway so
+	// we can ignore the error here
+	if ArnLikeMatchEnabled {
+		ok, err := arn.ArnLike(subject, m.ArnLike)
+		if err != nil {
+			logrus.Error("Could not parse subject ARN: ", err)
+		}
+		return ok
+	}
+
+	return false
 }
 
 // Key returns UserARN.

@@ -50,6 +50,11 @@ type RoleMapping struct {
 	// are generated for AWS SSO sessions.
 	SSO *SSOARNMatcher `json:"sso,omitempty" yaml:"sso,omitempty"`
 
+	// ArnLike is an an ArnLike pattern comparison as per
+	// https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_condition_operators.html#Conditions_ARN
+	// (e.g., "arn:aws:iam::*:role/some_pattern_*").
+	ArnLike string `json:"arnlike,omitempty" yaml:"arnlike,omitempty"`
+
 	// Username is the username pattern that this instances assuming this
 	// role will have in Kubernetes.
 	Username string `json:"username" yaml:"username"`
@@ -67,6 +72,11 @@ type RoleMapping struct {
 type UserMapping struct {
 	// UserARN is the AWS Resource Name of the user. (e.g., "arn:aws:iam::000000000000:user/Test").
 	UserARN string `json:"userarn" yaml:"userarn"`
+
+	// ArnLike is an an ArnLike pattern comparison as per
+	// https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_condition_operators.html#Conditions_ARN
+	// (e.g., "arn:aws:iam::*:user/some_pattern_*").
+	ArnLike string `json:"arnlike,omitempty" yaml:"arnlike,omitempty"`
 
 	// Username is the Kubernetes username this role will authenticate as (e.g., `mycorp:foo`)
 	Username string `json:"username" yaml:"username"`

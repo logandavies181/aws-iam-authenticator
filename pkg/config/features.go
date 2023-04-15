@@ -26,17 +26,21 @@ const (
 	ConfiguredInitDirectories featuregate.Feature = "ConfiguredInitDirectories"
 	// IAMIdentityMappingCRD enables using CRDs to manage allowed users
 	IAMIdentityMappingCRD featuregate.Feature = "IAMIdentityMappingCRD"
+	// ArnLikeMatch enables using an ArnLike pattern comparison to map roles
+	ArnLikeMatch featuregate.Feature = "ArnLikeMatch"
 	// SSORoleMatch enables matching roles managed by AWS SSO, with handling
 	// for their randomly generated suffixes
 	SSORoleMatch featuregate.Feature = "SSORoleMatch"
 )
 
 var (
+	ArnLikeMatchEnabled bool
 	SSORoleMatchEnabled bool
 )
 
 var DefaultFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	ConfiguredInitDirectories: {Default: false, PreRelease: featuregate.Alpha},
 	IAMIdentityMappingCRD:     {Default: false, PreRelease: featuregate.Alpha},
+	ArnLikeMatch:              {Default: false, PreRelease: featuregate.Alpha},
 	SSORoleMatch:              {Default: false, PreRelease: featuregate.Alpha},
 }

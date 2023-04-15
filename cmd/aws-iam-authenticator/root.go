@@ -128,6 +128,10 @@ func getConfig() (config.Config, error) {
 			cfg.ReservedPrefixConfig[c.BackendMode] = c
 		}
 	}
+	if featureGates.Enabled(config.ArnLikeMatch) {
+		logrus.Info("ArnLikeMatch feature enabled")
+		config.ArnLikeMatchEnabled = true
+	}
 	if featureGates.Enabled(config.SSORoleMatch) {
 		logrus.Info("SSORoleMatch feature enabled")
 		config.SSORoleMatchEnabled = true

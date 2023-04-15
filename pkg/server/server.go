@@ -96,6 +96,7 @@ func New(cfg config.Config, stopCh <-chan struct{}) *Server {
 		if mapping.RoleARN != "" {
 			logrus.WithFields(logrus.Fields{
 				"role":     mapping.RoleARN,
+				"arnlike":  mapping.ArnLike,
 				"username": mapping.Username,
 				"groups":   mapping.Groups,
 			}).Infof("mapping IAM role")
@@ -110,6 +111,7 @@ func New(cfg config.Config, stopCh <-chan struct{}) *Server {
 	for _, mapping := range c.UserMappings {
 		logrus.WithFields(logrus.Fields{
 			"user":     mapping.UserARN,
+			"arnlike":  mapping.ArnLike,
 			"username": mapping.Username,
 			"groups":   mapping.Groups,
 		}).Infof("mapping IAM user")
